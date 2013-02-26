@@ -104,6 +104,8 @@ template < typename T > void swap_vec_element(vector<T> & v, int i, int j)
 
 /// gsl_wrappers
 //double lgamma(double x); // linux has this
+void init_random_generator(unsigned long int random_seed);
+void free_random_generator();
 unsigned int rmultinomial(const double* p, int n, double tot_p=-1);
 double rgamma(double a, double b);
 double rbeta(double a, double b);
