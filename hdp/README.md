@@ -141,3 +141,14 @@ will produce a topic list with top 10 words selected. For help, run,
 
 print.topics.R
 
+--------------------------------------------------------------------------------------------
+
+Eclipse settings
+--------------------------------------------------------------------------------------------
+GCC C++ Compiler
+* Misc: -lm -lgsl -lgslcblas
+* Includes: /usr/include/gsl /usr/include
+
+GCC C++ Linker 
+* Lib: -l gsl gslcblas -L /usr/local/lib64 /usr/lib64
+* Misc XLinker: -lm -lgsl -lgslcblas 
