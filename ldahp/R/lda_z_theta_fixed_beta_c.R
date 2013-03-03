@@ -1,4 +1,4 @@
-lda_z_theta_fixed_beta_c <- function(ds, alpha.v, beta, max.iter=100, burn.in=0, spacing=1)
+lda_z_theta_fixed_beta_c <- function(ds, alpha.v, beta, max.iter=100, burn.in=0, spacing=1, store.Dir=0)
 {
   # The LDA Gibbs sampler: samples z and theta, a given fixed beta    
   # 
@@ -9,9 +9,10 @@ lda_z_theta_fixed_beta_c <- function(ds, alpha.v, beta, max.iter=100, burn.in=0,
   #   max.iter - max number of Gibbs iterations to perform 
   #   burn.in  - the burn in period of the Gibbs sampler 
   #   spacing  - spacing between the stored samples (to reduce correlation)
+  #   store.Dir- if 0 the sampler does not save theta and beta samples  
   #
   # return: 
-  #   model   - the learned LDA model 
+  #   model    - the learned LDA model 
   #
   
   
@@ -27,7 +28,7 @@ lda_z_theta_fixed_beta_c <- function(ds, alpha.v, beta, max.iter=100, burn.in=0,
   # NOTES: 
   # we substract zid with one because, in C the indexing starts at zero 
   # we assume that the vocab-id also starts at zero
-  ret          <- .Call("lda_z_theta_fixed_beta", doc.N, wid-1, zid-1, alpha.v, beta, max.iter, burn.in, spacing, PACKAGE="ldahp");
+  ret          <- .Call("lda_z_theta_fixed_beta", doc.N, wid-1, zid-1, alpha.v, beta, max.iter, burn.in, spacing, store.Dir, PACKAGE="ldahp");
   
   list(Z=ret$Z+1, thetas=ret$thetas);
   

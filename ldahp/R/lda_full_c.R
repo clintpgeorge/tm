@@ -1,4 +1,4 @@
-lda_full_c <- function(K, V, ds, alpha.v, eta, max.iter=100, burn.in=0, spacing=1)
+lda_full_c <- function(K, V, ds, alpha.v, eta, max.iter=100, burn.in=0, spacing=1, store.Dir=0)
 {
     # The LDA Gibbs sampler   (samples z, beta, and theta)
     # 
@@ -11,6 +11,7 @@ lda_full_c <- function(K, V, ds, alpha.v, eta, max.iter=100, burn.in=0, spacing=
     #   max.iter - max number of Gibbs iterations to perform 
     #   burn.in  - the burn in period of the Gibbs sampler 
     #   spacing  - spacing between the stored samples (to reduce correlation)
+    #   store.Dir- if 0 the sampler does not save theta and beta samples  
     #
     # return: 
     #   model     - the learned LDA model 
@@ -27,7 +28,7 @@ lda_full_c <- function(K, V, ds, alpha.v, eta, max.iter=100, burn.in=0, spacing=
     # we assume that the vocab-id also starts at zero. Here the corpus
     # is assumed to be read from the LDAC formatted file using 
     # read.ldac.documents function from lda.R
-    ret          <- .Call("lda_full", K, V, ds$doc.N, ds$docs, zid-1, alpha.v, eta, max.iter, burn.in, spacing, PACKAGE="ldahp");
+    ret          <- .Call("lda_full", K, V, ds$doc.N, ds$docs, zid-1, alpha.v, eta, max.iter, burn.in, spacing, store.Dir, PACKAGE="ldahp");
     
     list(Z=ret$Z+1, thetas=ret$thetas, betas=ret$betas, lmp=ret$lmp);
 

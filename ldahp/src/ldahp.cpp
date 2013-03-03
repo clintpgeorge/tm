@@ -182,7 +182,7 @@ double calc_log_marginal_posterior(
  */
 RcppExport SEXP lda_full(SEXP num_topics_, SEXP vocab_size_, SEXP doc_lengths_, SEXP docs_,
 	SEXP topic_assignments_, SEXP alpha_v_, SEXP eta_,
-	SEXP max_iter_, SEXP burn_in_, SEXP spacing_) {
+	SEXP max_iter_, SEXP burn_in_, SEXP spacing_, SEXP store_dirichlet_) {
 
 	// Variable from the R interface  
 	
@@ -196,18 +196,23 @@ RcppExport SEXP lda_full(SEXP num_topics_, SEXP vocab_size_, SEXP doc_lengths_, 
 	int max_iter = as<int>(max_iter_);
 	int burn_in = as<int>(burn_in_);
 	int spacing = as<int>(spacing_);
+  int store_dirichlet = as<int>(store_dirichlet_);
 
 	// Function variables 
 	
 	int num_docs = doc_lengths.n_elem;
 	int num_word_instances = accu(doc_lengths);
 	int valid_samples = ceil((max_iter - burn_in) / (double) spacing);
-	cube thetas = cube(num_topics, num_docs, valid_samples);
-	cube betas = cube(num_topics, vocab_size, valid_samples);
+  cube thetas;
+  cube betas;
+  if (store_dirichlet == 1){
+  	thetas = cube(num_topics, num_docs, valid_samples);
+  	betas = cube(num_topics, vocab_size, valid_samples);
+  }
 	umat Z = zeros<umat>(num_word_instances, valid_samples);
 	vec log_marginal = zeros<vec>(valid_samples);
 
-	mat beta_samples = zeros<mat>(num_topics, vocab_size);
+	mat prior_beta_samples = zeros<mat>(num_topics, vocab_size);
 	mat beta_counts = zeros<mat>(num_topics, vocab_size);
 	unsigned int d, i, k, iter, count = 0, instances = 0, c = 0, word_id, word_count, num_unique_words;
 	uvec word_ids = zeros<uvec>(num_word_instances);
@@ -244,11 +249,11 @@ RcppExport SEXP lda_full(SEXP num_topics_, SEXP vocab_size_, SEXP doc_lengths_, 
 
 	// Initilizes beta
 	
-	beta_samples.fill(1e-10);
+	prior_beta_samples.fill(1e-10);
 	beta_counts.fill(eta); // initializes with the smoothing parameter
 	for (i = 0; i < num_word_instances; i++)
 		beta_counts(z(i), word_ids(i)) += 1;
-
+  mat prior_beta_counts = beta_counts;
 
 	// The Gibbs sampling loop
 	
@@ -258,8 +263,8 @@ RcppExport SEXP lda_full(SEXP num_topics_, SEXP vocab_size_, SEXP doc_lengths_, 
 
 		cout << "gibbs iter# " << iter + 1;
 
-		mat theta_samples = zeros<mat>(num_topics, num_docs);
-		mat theta_counts = zeros<mat>(num_topics, num_docs);
+		mat prior_theta_samples = zeros<mat>(num_topics, num_docs);
+		mat prior_theta_counts = zeros<mat>(num_topics, num_docs);
 
 		for (d = 0; d < num_docs; d++){ // for each document 
 
@@ -277,7 +282,7 @@ RcppExport SEXP lda_full(SEXP num_topics_, SEXP vocab_size_, SEXP doc_lengths_, 
 				doc_beta_samples.row(k) = sample_dirichlet_row_vec(num_unique_words + 1, doc_beta_samples.row(k));
 
 			for (i = 0; i < num_unique_words; i++)
-				beta_samples.col(unique_words[i]) = doc_beta_samples.col(i);
+				prior_beta_samples.col(unique_words[i]) = doc_beta_samples.col(i);
 
 
 			// samples \theta
@@ -285,41 +290,52 @@ RcppExport SEXP lda_full(SEXP num_topics_, SEXP vocab_size_, SEXP doc_lengths_, 
 			for (i = 0; i < doc_lengths(d); i++)
 				partition_counts(z(word_idx[i])) += 1;
 			vec theta_d = sample_dirichlet(num_topics, partition_counts);
-
+  		
+      prior_theta_samples.col(d) = theta_d;
+			prior_theta_counts.col(d) = partition_counts;
+      
 			// samples z
 			for(i = 0; i < doc_lengths(d); i++)
 				beta_counts(z(word_idx[i]), word_ids(word_idx[i])) -= 1; // excludes document d's word-topic counts
 			for (i = 0; i < doc_lengths(d); i++)
-				z(word_idx[i]) = sample_multinomial(theta_d % beta_samples.col(word_ids(word_idx[i])));
+				z(word_idx[i]) = sample_multinomial(theta_d % prior_beta_samples.col(word_ids(word_idx[i])));
 			for(i = 0; i < doc_lengths(d); i++)
 				beta_counts(z(word_idx[i]), word_ids(word_idx[i])) += 1; // includes document d's word-topic counts
 
-			theta_samples.col(d) = theta_d;
-			theta_counts.col(d) = partition_counts;
+
 		}
 
 		if ((iter >= burn_in) && (iter % spacing == 0)){ // handles burn in period 
 			Z.col(count) = z;
-			thetas.slice(count) = theta_samples;
-			betas.slice(count) = beta_samples;
-			
-			log_marginal(count) = calc_log_marginal_posterior(num_topics, num_docs, vocab_size, theta_counts, beta_counts); 
+      if (store_dirichlet == 1){
+  			thetas.slice(count) = prior_theta_samples;
+  			betas.slice(count) = prior_beta_samples;
+      }
+			log_marginal(count) = calc_log_marginal_posterior(num_topics, num_docs, vocab_size, prior_theta_counts, prior_beta_counts); 
 			cout << " lmp: " << log_marginal(count);
 			
 			count++;
 		}
 
+    prior_beta_counts = beta_counts;
 		cout << endl;
 
 	}
 
 	cout << "END Gibbs sampling..." << endl;
 
-	return List::create(
-			Named("thetas") = wrap(thetas),
-			Named("betas") = wrap(betas),
-			Named("Z") = wrap(Z),
-			Named("lmp") = wrap(log_marginal));
+  if (store_dirichlet == 1){
+  	return List::create(
+  			Named("thetas") = wrap(thetas),
+  			Named("betas") = wrap(betas),
+  			Named("Z") = wrap(Z),
+  			Named("lmp") = wrap(log_marginal));
+  }
+  else {
+    return List::create(
+  			Named("Z") = wrap(Z),
+  			Named("lmp") = wrap(log_marginal));
+  }
 
 
 }
@@ -351,7 +367,7 @@ RcppExport SEXP lda_full(SEXP num_topics_, SEXP vocab_size_, SEXP doc_lengths_, 
 RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_, 
     SEXP doc_lengths_, SEXP word_ids_,
 	SEXP topic_assignments_, SEXP alpha_v_, SEXP eta_,
-	SEXP max_iter_, SEXP burn_in_, SEXP spacing_) {
+	SEXP max_iter_, SEXP burn_in_, SEXP spacing_, SEXP store_dirichlet_) {
 
 	// Variable from the R interface  
 
@@ -366,18 +382,23 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 	int max_iter = as<int>(max_iter_);
 	int burn_in = as<int>(burn_in_);
 	int spacing = as<int>(spacing_);
-	
+  int store_dirichlet = as<int>(store_dirichlet_);
+  
 	// Function variables 
 
 	int num_docs = doc_lengths.n_elem;
 	int num_word_instances = word_ids.n_elem;
 	int valid_samples = ceil((max_iter - burn_in) / (double) spacing);
-	cube thetas = cube(num_topics, num_docs, valid_samples);
-	cube betas = cube(num_topics, vocab_size, valid_samples);
+  cube thetas;
+  cube betas;
+  if (store_dirichlet == 1){
+    thetas = cube(num_topics, num_docs, valid_samples);
+  	betas = cube(num_topics, vocab_size, valid_samples);
+  }
 	umat Z = zeros<umat>(num_word_instances, valid_samples);
 	vec log_marginal = zeros<vec>(valid_samples);
 
-	mat beta_samples = zeros<mat>(num_topics, vocab_size);
+	mat prior_beta_samples = zeros<mat>(num_topics, vocab_size);
 	mat beta_counts = zeros<mat>(num_topics, vocab_size);
 	vector < vector < size_t > > document_word_indices;
 	unsigned int d, i, k, iter, count = 0, instances = 0;
@@ -386,12 +407,11 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 		eta_v(k) = eta;
 
 	// Calculates the indices for each word in a document as a vector
-
 	for (d = 0; d < num_docs; d++){
 		vector < size_t > word_idx;
 		for (i = 0; i < doc_lengths(d); i++){
 			word_idx.push_back(instances);
-			instances++;
+      instances++;
 		}
 		document_word_indices.push_back(word_idx);
 	}
@@ -403,13 +423,16 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 		beta_counts(z(i), word_ids(i)) += 1;
 
 	// The Gibbs sampling loop
+  
+  uvec prior_z = z; 
+  mat prior_beta_counts = beta_counts;
 
 	for (iter = 0; iter < max_iter; iter++){ 
 
 		cout << "gibbs iter# " << iter + 1;
 
-		mat theta_samples = zeros<mat>(num_topics, num_docs);
-		mat theta_counts = zeros <mat>(num_topics, num_docs);
+		mat prior_theta_samples = zeros<mat>(num_topics, num_docs);
+		mat prior_theta_counts = zeros <mat>(num_topics, num_docs);
 
 		for (d = 0; d < num_docs; d++){ // for each document
 			
@@ -417,47 +440,58 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 
 			// samples \beta
 			for(k = 0; k < num_topics; k++)
-				beta_samples.row(k) = sample_dirichlet_row_vec(vocab_size, beta_counts.row(k));
+				prior_beta_samples.row(k) = sample_dirichlet_row_vec(vocab_size, beta_counts.row(k));
 
 			// samples \theta
 			vec partition_counts = alpha_v; // initializes with the smoothing parameter
 			for (i = 0; i < doc_lengths(d); i++)
 				partition_counts(z(word_idx[i])) += 1;
 			vec theta_d = sample_dirichlet(num_topics, partition_counts);
+  		prior_theta_samples.col(d) = theta_d;
+			prior_theta_counts.col(d) = partition_counts;
+
 
 			// samples z
 			for(i = 0; i < doc_lengths(d); i++)
 				beta_counts(z(word_idx[i]), word_ids(word_idx[i])) -= 1; // excludes document d's word-topic counts
 			for (i = 0; i < doc_lengths(d); i++)
-				z(word_idx[i]) = sample_multinomial(theta_d % beta_samples.col(word_ids(word_idx[i])));
+				z(word_idx[i]) = sample_multinomial(theta_d % prior_beta_samples.col(word_ids(word_idx[i])));
 			for(i = 0; i < doc_lengths(d); i++)
 				beta_counts(z(word_idx[i]), word_ids(word_idx[i])) += 1; // includes document d's word-topic counts
-
-			theta_samples.col(d) = theta_d;
-			theta_counts.col(d) = partition_counts;
 
 		} // The end of the Gibbs loop
 
 		if ((iter >= burn_in) && (iter % spacing == 0)){ // Handles burn in period 
-			Z.col(count) = z;
-			thetas.slice(count) = theta_counts;
-			betas.slice(count) = beta_counts;
+			Z.col(count) = prior_z;
+      if (store_dirichlet == 1){
+  			thetas.slice(count) = prior_theta_samples; // theta_counts still has the counts from old z 
+  			betas.slice(count) = prior_beta_samples;
+      }
 			
-			log_marginal(count) = calc_log_marginal_posterior(num_topics, num_docs, vocab_size, theta_counts, beta_counts);
+			log_marginal(count) = calc_log_marginal_posterior(num_topics, num_docs, vocab_size, prior_theta_counts, prior_beta_counts);
 			cout << " lmp: " << log_marginal(count);
 			
 			count++;
 		}
 
+    prior_z = z; 
+    prior_beta_counts = beta_counts;
 		cout << endl;
 
 	}
-
-	return List::create(
-			Named("thetas") = wrap(thetas),
-			Named("betas") = wrap(betas),
-			Named("Z") = wrap(Z),
-			Named("lmp") = wrap(log_marginal));
+  if (store_dirichlet == 1){
+  	return List::create(
+  			Named("thetas") = wrap(thetas),
+  			Named("betas") = wrap(betas),
+  			Named("Z") = wrap(Z),
+  			Named("lmp") = wrap(log_marginal));
+  } 
+  else {
+    return List::create(
+  			Named("Z") = wrap(Z),
+  			Named("lmp") = wrap(log_marginal));
+  }
+  
 
 }
 
@@ -493,7 +527,7 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 RcppExport SEXP lda_collapsed_gibbs(SEXP num_topics_, SEXP vocab_size_,
 		SEXP doc_lengths_, SEXP word_ids_,
 		SEXP topic_assignments_, SEXP alpha_v_, SEXP eta_,
-		SEXP max_iter_, SEXP burn_in_, SEXP spacing_) {
+		SEXP max_iter_, SEXP burn_in_, SEXP spacing_, SEXP store_dirichlet_) {
 
 	// variable declarations
 
@@ -508,12 +542,16 @@ RcppExport SEXP lda_collapsed_gibbs(SEXP num_topics_, SEXP vocab_size_,
 	int max_iter = as<int>(max_iter_);
 	int burn_in = as<int>(burn_in_);
 	int spacing = as<int>(spacing_);
-
+  int store_dirichlet = as<int>(store_dirichlet_);
 	int num_docs = doc_lengths.n_elem; // number of documents in the corpus
 	int num_word_instances = word_ids.n_elem; // total number of words in the corpus
 	int valid_samples = ceil((max_iter - burn_in) / (double) spacing);
-	cube thetas = cube(num_topics, num_docs, valid_samples);
-	cube betas = cube(num_topics, vocab_size, valid_samples);
+  cube thetas;
+  cube betas;
+  if (store_dirichlet == 1){
+    thetas = cube(num_topics, num_docs, valid_samples);
+  	betas = cube(num_topics, vocab_size, valid_samples);
+  }
 	umat Z = zeros<umat>(num_word_instances, valid_samples);
 	vec log_marginal = zeros<vec>(valid_samples);
 
@@ -592,8 +630,10 @@ RcppExport SEXP lda_collapsed_gibbs(SEXP num_topics_, SEXP vocab_size_,
 
 		if ((iter >= burn_in) && (iter % spacing == 0)){ // handles the burn in period
 			Z.col(count) = z;
-			thetas.slice(count) = theta_counts;
-			betas.slice(count) = beta_counts;
+      if (store_dirichlet == 1){
+  			thetas.slice(count) = theta_counts;
+  			betas.slice(count) = beta_counts;
+      }
 			
 			log_marginal(count) = calc_log_marginal_posterior(num_topics, num_docs, vocab_size, theta_counts, beta_counts);
 			cout << " lmp: " << log_marginal(count);
@@ -605,11 +645,18 @@ RcppExport SEXP lda_collapsed_gibbs(SEXP num_topics_, SEXP vocab_size_,
 
 	} // The end of the Gibbs loop
 
-	return List::create(
-			Named("thetas") = wrap(thetas),
-			Named("betas") = wrap(betas),
-			Named("Z") = wrap(Z),
-			Named("lmp") = wrap(log_marginal));
+  if (store_dirichlet == 1){
+  	return List::create(
+  			Named("thetas") = wrap(thetas),
+  			Named("betas") = wrap(betas),
+  			Named("Z") = wrap(Z),
+  			Named("lmp") = wrap(log_marginal));
+  }
+  else {
+    return List::create(
+  			Named("Z") = wrap(Z),
+  			Named("lmp") = wrap(log_marginal));
+  }
 
 }
 
@@ -640,7 +687,7 @@ RcppExport SEXP lda_collapsed_gibbs(SEXP num_topics_, SEXP vocab_size_,
  */
 RcppExport SEXP lda_z_theta_fixed_beta(SEXP doc_lengths_, SEXP word_ids_,
 		SEXP topic_assignments_, SEXP alpha_v_, SEXP beta_,
-		SEXP max_iter_, SEXP burn_in_, SEXP spacing_) {
+		SEXP max_iter_, SEXP burn_in_, SEXP spacing_, SEXP store_dirichlet_) {
 
 	uvec doc_N = as<uvec>(doc_lengths_);
 	uvec word_ids = as<uvec>(word_ids_);
@@ -650,15 +697,18 @@ RcppExport SEXP lda_z_theta_fixed_beta(SEXP doc_lengths_, SEXP word_ids_,
 	int max_iter = as<int>(max_iter_);
 	int burn_in = as<int>(burn_in_);
 	int sample_spacing = as<int>(spacing_);
-
+  int store_dirichlet = as<int>(store_dirichlet_);
+  
 	int num_topics = beta_m.n_rows;
 	int vocab_size = beta_m.n_cols;
 	int num_docs = doc_N.n_elem;
 	int num_word_instances = word_ids.n_elem;
 	int valid_samples = ceil((max_iter - burn_in) / (double) sample_spacing);
 
-	mat theta_samples = zeros<mat>(num_topics, num_docs);
-	cube thetas = cube(num_topics, num_docs, valid_samples);
+	mat prior_theta_samples = zeros<mat>(num_topics, num_docs);
+  cube thetas; 
+  if (store_dirichlet == 1)
+	  thetas = cube(num_topics, num_docs, valid_samples);
 	umat Z = zeros<umat>(num_word_instances, valid_samples);
 
 	vector < vector < unsigned int > > document_word_indices;
@@ -675,7 +725,7 @@ RcppExport SEXP lda_z_theta_fixed_beta(SEXP doc_lengths_, SEXP word_ids_,
 		document_word_indices.push_back(word_idx);
 	}
 
-	uvec prev_z = z;
+	uvec prior_z = z;
 
 	// The Gibbs sampling loop
 
@@ -691,28 +741,31 @@ RcppExport SEXP lda_z_theta_fixed_beta(SEXP doc_lengths_, SEXP word_ids_,
 			for (i = 0; i < doc_N(d); i++)
 				partition_counts(z(word_idx[i])) += 1;
 			vec theta_d = sample_dirichlet(num_topics, partition_counts);
+      prior_theta_samples.col(d) = theta_d; // partition_counts; //
 
 			for (i = 0; i < doc_N(d); i++)
 				z(word_idx[i]) = sample_multinomial(theta_d % beta_m.col(word_ids(word_idx[i])));
 
-			theta_samples.col(d) = theta_d; // partition_counts; //
-
 		}
 
 		if ((iter >= burn_in) && (iter % sample_spacing == 0)){
-			Z.col(count) = prev_z;
-			thetas.slice(count) = theta_samples;
+			Z.col(count) = prior_z;
+      if (store_dirichlet == 1)
+			  thetas.slice(count) = prior_theta_samples;
 			count++;
 		}
 
-		prev_z = z;
+		prior_z = z;
 		cout << endl;
 	}
 
-	return List::create(
-			Named("thetas") = wrap(thetas),
-			Named("Z") = wrap(Z));
-
-
+  if (store_dirichlet == 1) {
+  	return List::create(
+  			Named("thetas") = wrap(thetas),
+  			Named("Z") = wrap(Z));
+  }
+  else {
+    return List::create(Named("Z") = wrap(Z));
+  }
 }
 

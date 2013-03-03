@@ -71,7 +71,7 @@ neg_log_likelihood_ratio <- function(alpha_eta, mc.thetas, mc.betas, base.alpha_
   
 }
 
-neg_log_likelihood_ratio_symmetric <- function(alpha_eta, mc.theta, mc.beta, base.alpha_eta){
+neg_log_likelihood_ratio_symmetric <- function(alpha_eta, mc.thetas, mc.betas, base.alpha_eta){
   # Computes the LDA negative log likelihood ratio from an LDA full
   # (no topic sampling) Gibbs sampler output, with symmetric hyperparameters. 
   # This function is used as an argument for the R optimx package.  
@@ -107,6 +107,6 @@ neg_log_likelihood_ratio_symmetric <- function(alpha_eta, mc.theta, mc.beta, bas
     dr <- dr + exp( sum( ((alpha - base.alpha) %*% log(mc.thetas[,,i])) + lnc.alpha ) + sum( (log(mc.betas[,,i]) %*% (eta.v - base.eta.v)) + lnc.eta ) );
   }
   
-  -log(dr / iter);
+  -log(dr / G);
   
 }

@@ -21,7 +21,7 @@ V                   <- 20
 start               <- 0.2
 end                 <- 12
 interval            <- 0.4
-max.iter            <- 5000
+max.iter            <- 9000
 burn.in             <- 1000
 spacing             <- 100
 base.alpha.idx      <- 218  # c(3, 3), the alpha used to run the Gibbs sampler 
@@ -47,7 +47,7 @@ ds                  <- generate_docs_fixed_beta(D, lambda.hat, gen.alpha.v, beta
 ## The Gibbs sampling based on the C++ implementation 
 
 ptm                 <- proc.time();
-zt.model            <- lda_z_theta_fixed_beta_c(ds, base.alpha.v, beta.m, max.iter, burn.in, spacing);
+zt.model            <- lda_z_theta_fixed_beta_c(ds, base.alpha.v, beta.m, max.iter, burn.in, spacing, store.Dir=0);
 ptm                 <- proc.time() - ptm;
 cat("execution time = ", ptm[3], "\n");
 
@@ -55,11 +55,14 @@ cat("execution time = ", ptm[3], "\n");
 ##       are passed back to R from C++. Need to check it out   
 
 
+thetas <- compute_thetas(ds$did, zt.model$Z, K, D, base.alpha.v)
+
+
 
 ## Calculates nu.alphas (in log scale) using the z and theta samples
 ## of the MCMC chain ran on the base alpha
 
-log.nu.alphas       <- calc_log_nu_alphas(zt.model$thetas, alphas)
+log.nu.alphas       <- calc_log_nu_alphas(thetas, alphas)
 
 ## Calculates the likelihood ratios
 
@@ -69,8 +72,12 @@ ratios              <- calc_likelihood_ratios(log.nu.alphas, base.alpha.idx);
 max.idx             <- which(ratios == max(ratios)); alphas[,max.idx];
 s                   <- sort(ratios, decreasing=T, method="qu", index.return=TRUE); alphas[,s$ix[1:5]];
 
-## Saves every object into a file 
-save.image(rdata_file)
+
+display_ratios(ratios, start, end, interval);
+
+
+# ## Saves every object into a file 
+# save.image(rdata_file)
 
 
 # # ###############################################################################################
@@ -84,39 +91,47 @@ dev.off();
 # # ###############################################################################################
 
 
-# ###############################################################################################
-# # Recalculates \theta from the Z values to test 
-# # if there is any sampling errors  
-# ###############################################################################################
-# error <- 0; 
-# did             <- ds$did 
-# total.N         <- dim(zt.model$Z)[1];
-# sample.count    <- dim(zt.model$Z)[2];
-# thetas          <- array(0, dim=c(K, D, sample.count));
-# 
-# for (iter in 1:sample.count) {
-#   zid             <- zt.model$Z[, iter];
-#   
-#   # base.alpha.v is used because in the Gibbs sampler we use this 
-#   theta       <- kronecker(matrix(1, 1, D), base.alpha.v); 
-#   for (i in 1:total.N) { theta[zid[i], did[i]] <- theta[zid[i], did[i]] + 1; }
-#   for (d in 1:D) { theta[, d] <- rdirichlet(1, theta[, d]); }
-#   
-#   cat("error = ", sum(zt.model$thetas[,,iter] - theta), "\n");
-#   error < error + sum(zt.model$thetas[,,iter] - theta)
-#   
-#   thetas[,,iter] <- theta;
-# }
-# 
-# error
-# 
-# log.nu.alphas  <- calc_log_nu_alphas(thetas, alphas)
-# ratios         <- calc_likelihood_ratios(log.nu.alphas, base.alpha.idx);
-# max.idx        <- which(ratios == max(ratios)); alphas[,max.idx];
-# s              <- sort(ratios, decreasing=T, method="qu", index.return=TRUE); alphas[,s$ix[1:5]];
-# 
-# 
-# 
-# ###############################################################################################
+###############################################################################################
+# Recalculates \theta from the Z values to test 
+# if there is any sampling errors  
+###############################################################################################
+compute.theta.error <- function(did, Z, K, D, base.alpha.v, mc.thetas)
+{
+  theta.err <- 0; 
+  total.N         <- dim(Z)[1];
+  sample.count    <- dim(Z)[2];
+  thetas          <- array(0, dim=c(K, D, sample.count));
+  
+  for (iter in 1:sample.count) {
+    zid             <- Z[, iter];
+    
+    # base.alpha.v is used because in the Gibbs sampler we use this 
+    theta       <- kronecker(matrix(1, 1, D), base.alpha.v); 
+    for (i in 1:total.N) { theta[zid[i], did[i]] <- theta[zid[i], did[i]] + 1; }
+    for (d in 1:D) { theta[, d] <- rdirichlet(1, theta[, d]); }
+    
+    cat("theta.err = ", sum(mc.thetas[,,iter] - theta), "\n");
+    theta.err <- theta.err + sum(mc.thetas[,,iter] - theta)
+    
+    thetas[,,iter] <- theta;
+  }
+  
+  theta.err
+}
+compute.theta.error(ds$did, zt.model$Z, K, D, base.alpha.v, zt.model$thetas);
+
+
+log.nu.alphas  <- calc_log_nu_alphas(thetas, alphas)
+ratios         <- calc_likelihood_ratios(log.nu.alphas, base.alpha.idx);
+max.idx        <- which(ratios == max(ratios)); alphas[,max.idx];
+s              <- sort(ratios, decreasing=T, method="qu", index.return=TRUE); alphas[,s$ix[1:5]];
+
+
+
+
+
+
+
+###############################################################################################
 
 

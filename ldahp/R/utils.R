@@ -116,3 +116,39 @@ compute_thetas <- function(did, Z, K, D, base.alpha.v)
   thetas # return object 
 }
 
+
+
+compute_thetas_betas <- function(did, wid, Z, K, D, V, base.alpha.v, base.eta)
+{
+  # Re-computes theta and beta for each Gibbs iteration from 
+  # the stored z values. This is useful when you have 
+  # a dataset with lots of documents and you have 
+  # minimal memory 
+  
+  total.N         <- dim(Z)[1];
+  sample.count    <- dim(Z)[2];
+  thetas          <- array(0, dim=c(K, D, sample.count));
+  betas           <- array(0, dim=c(K, V, sample.count));
+  
+  for (iter in 1:sample.count) {
+    zid             <- Z[, iter];
+    
+    # base.alpha.v and base.eta is used, because the Gibbs sampler uses the same 
+    theta       <- kronecker(matrix(1, 1, D), base.alpha.v); 
+    beta        <- matrix(base.eta, nrow=K, ncol=V);
+    
+    for (i in 1:total.N) { beta[zid[i], wid[i]] <- beta[zid[i], wid[i]] + 1; }
+    for (k in 1:K) { beta[k,] <- rdirichlet(1, beta[k,]); } 
+    betas[,,iter]  <- beta;
+    
+    for (i in 1:total.N) { theta[zid[i], did[i]] <- theta[zid[i], did[i]] + 1; }
+    for (d in 1:D) { theta[, d] <- rdirichlet(1, theta[, d]); }
+    thetas[,,iter]  <- theta;
+    
+  }
+  
+  list(thetas=thetas, betas=betas)
+}
+
+
+

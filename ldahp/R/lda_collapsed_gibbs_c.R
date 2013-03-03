@@ -1,4 +1,4 @@
-lda_collapsed_gibbs_c <- function(K, V, ds, alpha.v, eta, max.iter=100, burn.in=0, spacing=1)
+lda_collapsed_gibbs_c <- function(K, V, ds, alpha.v, eta, max.iter=100, burn.in=0, spacing=1, store.Dir=0)
 {
   # The LDA Gibbs sampler  (samples z)
   # 
@@ -11,13 +11,13 @@ lda_collapsed_gibbs_c <- function(K, V, ds, alpha.v, eta, max.iter=100, burn.in=
   #   max.iter - max number of Gibbs iterations to perform 
   #   burn.in  - the burn in period of the Gibbs sampler 
   #   spacing  - spacing between the stored samples (to reduce correlation)
+  #   store.Dir- if 0 the sampler does not save theta and beta samples 
   #
   # return: 
   #   model     - the learned LDA model 
   #
   
   # initializes the variables 
-  
   
   doc.N        <- ds$doc.N;                                         # document word counts
   wid          <- ds$wid;                                           # word ids (1 X total.N vector)
@@ -28,7 +28,7 @@ lda_collapsed_gibbs_c <- function(K, V, ds, alpha.v, eta, max.iter=100, burn.in=
   # NOTES: 
   # we substract zid with one because, in C the indexing starts at zero 
   # we assume that the vocab-id also starts at zero
-  ret          <- .Call("lda_collapsed_gibbs", K, V, doc.N, wid-1, zid-1, alpha.v, eta, max.iter, burn.in, spacing, PACKAGE="ldahp");
+  ret          <- .Call("lda_collapsed_gibbs", K, V, doc.N, wid-1, zid-1, alpha.v, eta, max.iter, burn.in, spacing, store.Dir, PACKAGE="ldahp");
   
   list(Z=ret$Z+1, thetas=ret$thetas, betas=ret$betas, lmp=ret$lmp);
   
