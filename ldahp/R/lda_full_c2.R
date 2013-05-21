@@ -24,9 +24,8 @@ lda_full_c2 <- function(K, V, ds, alpha.v, eta, max.iter=100, burn.in=0, spacing
   n.alpha.v    <- alpha.v / sum(alpha.v);
   zid          <- sample(1:K, total.N, replace=T, prob=n.alpha.v);  # initial selection of topics for words
   
-  # NOTES: 
-  # we substract zid with one because, in C the indexing starts at zero 
-  # we assume that the vocab-id also starts at zero
+  # NOTE: 
+  # we substract zid and wid with one because, in C the indexing starts at zero 
   ret          <- .Call("lda_full2", K, V, ds$doc.N, wid-1, zid-1, alpha.v, eta, max.iter, burn.in, spacing, store.Dir, PACKAGE="ldahp");
   
   list(Z=ret$Z+1, thetas=ret$thetas, betas=ret$betas, lmp=ret$lmp);

@@ -392,6 +392,9 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 	int num_docs = doc_lengths.n_elem;
 	int num_word_instances = word_ids.n_elem;
 	int valid_samples = ceil((max_iter - burn_in) / (double) spacing);
+  
+  // cout << "number of saved samples: " << valid_samples << endl; 
+  
 	cube thetas;
 	cube betas;
 	if (store_dirichlet == 1){
@@ -481,10 +484,13 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 
 		prior_z = z;
 		prior_beta_counts = beta_counts;
-		if (iter % 1000 == 0)
+		if ((iter+1) % 1000 == 0)
 			cout << endl;
 
 	} // The end of the Gibbs loop
+  
+  cout << "number of saved samples: " << count << endl; 
+  
 	if (store_dirichlet == 1){
 		return List::create(
 				Named("thetas") = wrap(thetas),
