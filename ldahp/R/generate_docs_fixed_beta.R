@@ -1,8 +1,8 @@
 generate_docs_fixed_beta <- function(D, lambda.hat, alpha.v, beta)
 {
   
-  # Generate document words using the LDA generative process 
-  # and a given beta 
+  # Generates document words using the LDA generative process given a beta. 
+  # It's used to test the correctness of the Gibbs sampling algrithms.
   # 
   # Inputs: 
   #   D          - the number of documents in the corpus 
@@ -18,7 +18,7 @@ generate_docs_fixed_beta <- function(D, lambda.hat, alpha.v, beta)
   theta.samples <- matrix(0, nrow=K, ncol=D);      
   
   did <- c();
-  wid <- c(); 
+  wid <- c();
   zid <- c();
   doc.N <- array(lambda.hat, dim=c(D, 1)); # rpois(D, lambda.hat);  when the number of words in a document is random likelihood ratios varies 
   

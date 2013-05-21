@@ -8,7 +8,7 @@ library(ldahp);
 options(digits=2)
 set.seed(1983);
 
-rdata_file     <- "~/Dropbox/lda-hp/results/ldac_cfg01_3.RData"
+rdata_file     <- "~/workspace/tm/data/fg_synth.RData"
 
 
 ## Initialize variables
@@ -18,7 +18,7 @@ V              <- 20                                   # the vocabulary size
 start          <- 0.2
 end            <- 12
 interval       <- 0.4
-max.iter       <- 11000                                # the maximum number of Gibbs iterations
+max.iter       <- 10000                                # the maximum number of Gibbs iterations
 burn.in        <- 1000
 spacing        <- 10
 lambda.hat     <- 80
@@ -31,7 +31,7 @@ alphas[,base.alpha.idx]                                # base alpha for the MCMC
 base.alpha.v        <- array(alphas[1,base.alpha.idx], dim=c(K, 1));                          # symmetric Dirichlet
 base.eta            <- alphas[2,base.alpha.idx];
 
-set.seed(1983)
+
 
 ## Generates the synthetic beta.m
 beta.m         <- matrix(1e-2, nrow=K, ncol=V)
