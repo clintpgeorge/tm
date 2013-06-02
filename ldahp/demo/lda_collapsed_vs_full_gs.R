@@ -5,57 +5,43 @@ library(ldahp);
 
 set.seed(1983)
 
-# ## for three topics 
-# K              <- 3 # the number of topics
-# D              <- 100 # the total number of documents to be generated
-# V              <- 40 # the vocabulary size
-# max.iter       <- 10000 # the maximum number of Gibbs iterations
-# burn.in        <- 4000
-# spacing        <- 1
-# lambda.hat     <- 80
-# gen.alpha.v    <- c(3, 2, 1)
-# eta            <- 1
-# 
-# beta.m              <- matrix(1e-2, nrow=K, ncol=V)
-# beta.m[1, 1:12]     <- 10
-# beta.m[2, 8:25]     <- 10
-# beta.m[3, 15:40]     <- 10 
-# rdata_file     <- "ldac_fg_vs_cg_3t.RData"
-
-## for two topics 
 K              <- 2 # the number of topics
 D              <- 100 # the total number of documents to be generated
 V              <- 20 # the vocabulary size
-max.iter       <- 10000 # the maximum number of Gibbs iterations
-burn.in        <- 4000
-spacing        <- 1
+max.iter       <- 50000 # the maximum number of Gibbs iterations
+burn.in        <- 2000
+spacing        <- 40
 lambda.hat     <- 80
-gen.alpha.v    <- c(3, 2)
-eta            <- 1
+gen.eta        <- 3 
+gen.alpha.v    <- c(7, 7)
+gen.eta.v      <- array(gen.eta, c(1, V));                   # symmetric Dirichlet
+rdata_file     <- "~/workspace/tm/data/fg_cg_synth_cfg05.RData"
 
-beta.m              <- matrix(1e-2, nrow=K, ncol=V)
-beta.m[1, 1:12]     <- 10
-beta.m[2, 8:20]     <- 10
 
-rdata_file     <- "ldac_fg_vs_cg_2t.RData"
+## Generates the synthetic beta.m
 
+beta.m         <- matrix(1e-2, nrow=K, ncol=V)
+beta.m[1, ]    <- rdirichlet(1, gen.eta.v);
+beta.m[2, ]    <- rdirichlet(1, gen.eta.v);
 
 ## Generates documents with a given beta.m
 
-ds                  <- generate_docs_fixed_beta(D, lambda.hat, gen.alpha.v, beta.m);
+ds             <- generate_docs_fixed_beta(D, lambda.hat, gen.alpha.v, beta.m);
 
 
 
 ## The full Gibbs sampling
+
 ptm                <- proc.time();
-fg.mdl             <- lda_full_c2(K, V, ds, gen.alpha.v, eta, max.iter, burn.in, spacing, 1);
+fg.mdl             <- lda_full_c2(K, V, ds, gen.alpha.v, gen.eta, max.iter, burn.in, spacing, 1);
 ptm                <- proc.time() - ptm;
 cat("execution time = ", ptm[3], "\n");
 
 
 ## The collapsed Gibbs sampling
+
 ptm               <- proc.time();
-cg.mdl            <- lda_collapsed_gibbs_c(K, V, ds, gen.alpha.v, eta, max.iter, burn.in, spacing, 1);
+cg.mdl            <- lda_collapsed_gibbs_c(K, V, ds, gen.alpha.v, gen.eta, max.iter, burn.in, spacing, 1);
 ptm               <- proc.time() - ptm;
 cat("execution time = ", ptm[3], "\n");
 
@@ -63,6 +49,20 @@ cat("execution time = ", ptm[3], "\n");
 ## Saves every object into a file
 
 save.image(rdata_file)
+
+
+
+# Proportion of topic assignments 
+
+total.num.words <- nrow(fg.mdl$Z)
+num.samples <- ncol(fg.mdl$Z)
+
+word.id = 2
+table(fg.mdl$Z[word.id,])/num.samples; 
+table(cg.mdl$Z[word.id,])/num.samples; 
+
+
+
 
 
 
@@ -137,14 +137,6 @@ color2D.matplot(beta.m, c(0.6, 0), c(0, 0.9), c(0,1), xlab="vocabulary words", y
 color2D.matplot(fg.beta, c(0.6, 0), c(0, 0.9), c(0,1), xlab="vocabulary words", ylab="topics", main=expression(paste("Full GS: estimated ", beta, " matrix")));
 color2D.matplot(cg.beta, c(0.6, 0), c(0, 0.9), c(0,1), xlab="vocabulary words", ylab="topics", main=expression(paste("Collapsed GS: estimated ", beta, " matrix")));
 
-
-# Proportion of topic assignments 
-
-total.num.words <- nrow(fg.mdl$Z)
-num.samples <- ncol(fg.mdl$Z)
-word.id = 2
-
-table(fg.mdl$Z[,word.id])/total.num.words; table(cg.mdl$Z[,word.id])/total.num.words; 
 
 
 

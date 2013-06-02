@@ -2,35 +2,88 @@
 ## This is a script to test hyperparameter estimation for the LDA model 
 ## and we sample theta and beta in the Gibbs sampling chain. 
 ## Here, we use the C++ implementation of the Gibbs sampler.  
+## This can support heyperparametrs taken from a 2-dimensional plane.
 ##################################################################################
 
 library(ldahp);
 options(digits=2)
 set.seed(1983);
 
-rdata_file     <- "~/workspace/tm/data/fg_synth_cfg05.RData"
+
 
 
 ## Initialize variables
 K              <- 2                                    # the number of topics
-D              <- 500                                  # the total number of documents to be generated
+D              <- 200                                  # the total number of documents to be generated
 V              <- 20                                   # the vocabulary size
 start          <- 0.2
 end            <- 12
-interval       <- 0.4
-max.iter       <- 10000                                # the maximum number of Gibbs iterations
-burn.in        <- 4000
+interval       <- 0.2
+max.iter       <- 11000                                # the maximum number of Gibbs iterations
+burn.in        <- 1000
 spacing        <- 10
 lambda.hat     <- 80
-gen.alpha.v    <- c(3, 3)                              # symmetric Dirichlet
-gen.eta.v      <- array(3, c(1, V));                   # symmetric Dirichlet
-base.alpha.idx <- 218                                  # c(3, 3)
-store.Dir      <- 1 
+gen.alpha.v    <- c(7, 7)                              # symmetric Dirichlet
+gen.eta.v      <- array(7, c(1, V));                   # symmetric Dirichlet
+base.alpha.idx <- 2075                                 # c(3, 3), when int=0.4, idx=528
+store.Dir      <- 1
+
+# rdata_file     <- "~/workspace/tm/data/fg_synth_cfg10.RData"
+# 
+# ## Initialize variables
+# K              <- 2                                    # the number of topics
+# D              <- 300                                  # the total number of documents to be generated
+# V              <- 20                                   # the vocabulary size
+# start          <- 0.2
+# end            <- 12
+# interval       <- 0.2
+# max.iter       <- 11000                                # the maximum number of Gibbs iterations
+# burn.in        <- 1000
+# spacing        <- 100
+# lambda.hat     <- 80
+# gen.alpha.v    <- c(7, 7)                              # symmetric Dirichlet
+# gen.eta.v      <- array(3, c(1, V));                   # symmetric Dirichlet
+# base.alpha.idx <- 2055                                 # c(3, 3), when int=0.4, idx=518
+# store.Dir      <- 1
+
+# ## Initialize variables
+# K              <- 2                                    # the number of topics
+# D              <- 300                                  # the total number of documents to be generated
+# V              <- 20                                   # the vocabulary size
+# start          <- 0.2
+# end            <- 12
+# interval       <- 0.2
+# max.iter       <- 11000                                # the maximum number of Gibbs iterations
+# burn.in        <- 1000
+# spacing        <- 100
+# lambda.hat     <- 80
+# gen.alpha.v    <- c(3, 3)                              # symmetric Dirichlet
+# gen.eta.v      <- array(7, c(1, V));                   # symmetric Dirichlet
+# base.alpha.idx <- 875                                  # c(3, 3), when int=0.4, idx=229
+# store.Dir      <- 1
+
+
+# ## Initialize variables
+# K              <- 2                                    # the number of topics
+# D              <- 300                                  # the total number of documents to be generated
+# V              <- 20                                   # the vocabulary size
+# start          <- 0.2
+# end            <- 12
+# interval       <- 0.2
+# max.iter       <- 11000                                # the maximum number of Gibbs iterations
+# burn.in        <- 1000
+# spacing        <- 100
+# lambda.hat     <- 80
+# gen.alpha.v    <- c(3, 3)                              # symmetric Dirichlet
+# gen.eta.v      <- array(3, c(1, V));                   # symmetric Dirichlet
+# base.alpha.idx <- 855                                  # c(3, 3) , when int=0.2, idx=218 
+# store.Dir      <- 1 
+
 
 alphas         <- gen_meshgrid(start, end, interval)   # generate alpha grid (2-D)
 alphas[,base.alpha.idx]                                # base alpha for the MCMC
-base.alpha.v        <- array(alphas[1,base.alpha.idx], dim=c(K, 1));                          # symmetric Dirichlet
-base.eta            <- alphas[2,base.alpha.idx];
+base.alpha.v   <- array(alphas[1,base.alpha.idx], dim=c(K, 1));                          # symmetric Dirichlet
+base.eta       <- alphas[2,base.alpha.idx];
 
 
 
@@ -74,14 +127,17 @@ alphas[,max.idx]
 
 
 s              <- sort(ratios, decreasing = T, method = "qu", index.return=TRUE);
-alphas[,s$ix[1:5]];
-ratios[s$ix[1:5]];
+alphas[,s$ix[1:10]];
+ratios[s$ix[1:10]];
 
 ## Saves every object into a file 
+
+rdata_file     <- "~/workspace/tm/data/fg_synth_cfg11.1.RData"
 save.image(rdata_file)
 
 
 ## Plots the likelihood ratios (ony for 2-D)
+
 display_ratios(ratios, start, end, interval, xlabel="alpha", ylabel="eta", "lilelihood ratios");
 
 
