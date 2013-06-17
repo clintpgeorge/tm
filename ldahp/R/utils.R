@@ -61,7 +61,7 @@ gen_meshgrid <- function(start, end, interval=0.2){
 }
 
 
-display_ratios <- function(ratios, start, end, interval, xlabel="alpha-1", ylabel="alpha-2", zlabel="lilelihood ratios"){
+display_ratios <- function(ratios, start, end, interval, xlabel="alpha-1", ylabel="alpha-2", zlabel="lilelihood ratios", plot.file="ll_ratios.pdf"){
   
   # displays the likelihood ratios in a grid 
   
@@ -80,10 +80,13 @@ display_ratios <- function(ratios, start, end, interval, xlabel="alpha-1", ylabe
   
   op <- par(bg = "white")
   persp(x, y, z, col = "lightblue")
+  pdf(file = plot.file)
   persp(x, y, z, theta = 30, phi = 30, expand = 0.5, col = "lightblue",
         ltheta = 120, shade = 0.75, ticktype = "detailed",
         xlab = xlabel, ylab = ylabel, zlab = zlabel 
   ) -> res
+  par(op)
+  dev.off()
   
   round(res, 3);
   

@@ -32,6 +32,11 @@ calc_log_nu_alphas_with_beta <- function (thetas, betas, alphas, etas) {
   V          <- ncol(etas); # G x V matrix 
   log.nu.alphas  <- matrix(0, nrow=num.grids, ncol=sample.count);
   
+  cat("Computing log nu alphas: \n\t number of grids = ", num.grids);
+  cat("\n\t number of samples = ", sample.count);
+  cat("\n\t number of topics = ", K)
+  cat("\n\t vocabulary size = ", V, "\n\t ");
+  
   for (ng in 1:num.grids){
     
     alpha.v  <- alphas[ng, ]; # gets each grid 
@@ -48,10 +53,12 @@ calc_log_nu_alphas_with_beta <- function (thetas, betas, alphas, etas) {
       log.nu.alphas[ng, iter] <- theta.nu.alpha + beta.nu.alpha;
       
     }
-    
-    cat("grid = ", ng, "\n");
+    if (ng %% 10 == 0) { cat("."); } 
+    if (ng %% 1000 == 0) { cat("\n"); } 
     
   } 
+  
+  cat("\nCompleted.")
   
   log.nu.alphas;
   

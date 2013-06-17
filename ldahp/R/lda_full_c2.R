@@ -1,11 +1,12 @@
-lda_full_c2 <- function(K, V, ds, alpha.v, eta, max.iter=100, burn.in=0, spacing=1, store.Dir=0)
+lda_full_c2 <- function(K, V, wid, doc.N, alpha.v, eta, max.iter=100, burn.in=0, spacing=1, store.Dir=0)
 {
   # The LDA Gibbs sampler  (samples z, beta, and theta)
   # 
   # input:
   #   K        - the number of topics 
   #   V        - the vocabulary size 
-  #   ds       - the corpus      
+  #   wid      - word ids (1 X total.N vector)      
+  #   doc.N    - document word counts 
   #   alpha.v  - hyper parameter vector for theta 
   #   eta      - beta matrix smoothing parameter 
   #   max.iter - max number of Gibbs iterations to perform 
@@ -19,14 +20,13 @@ lda_full_c2 <- function(K, V, ds, alpha.v, eta, max.iter=100, burn.in=0, spacing
   
   # initializes the variables 
   
-  wid          <- ds$wid;                                           # word ids (1 X total.N vector)
   total.N      <- length(wid);                                      # the total number of word instances 
   n.alpha.v    <- alpha.v / sum(alpha.v);
   zid          <- sample(1:K, total.N, replace=T, prob=n.alpha.v);  # initial selection of topics for words
   
   # NOTE: 
   # we substract zid and wid with one because, in C the indexing starts at zero 
-  ret          <- .Call("lda_full2", K, V, ds$doc.N, wid-1, zid-1, alpha.v, eta, max.iter, burn.in, spacing, store.Dir, PACKAGE="ldahp");
+  ret          <- .Call("lda_full2", K, V, doc.N, wid-1, zid-1, alpha.v, eta, max.iter, burn.in, spacing, store.Dir, PACKAGE="ldahp");
   
   list(Z=ret$Z+1, thetas=ret$thetas, betas=ret$betas, lmp=ret$lmp);
   
