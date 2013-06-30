@@ -1,11 +1,12 @@
-lda_collapsed_gibbs_c <- function(K, V, ds, alpha.v, eta, max.iter=100, burn.in=0, spacing=1, store.Dir=0)
+lda_collapsed_gibbs_c <- function(K, V, wid, doc.N, alpha.v, eta, max.iter=100, burn.in=0, spacing=1, store.Dir=0)
 {
   # The LDA Gibbs sampler  (samples z)
   # 
   # input:
   #   K        - the number of topics 
   #   V        - the vocabulary size 
-  #   ds       - the corpus     
+  #   wid      - word ids (1 X total.N vector)      
+  #   doc.N    - document word counts     
   #   alpha.v  - hyper parameter vector for theta 
   #   eta      - beta matrix smoothing parameter 
   #   max.iter - max number of Gibbs iterations to perform 
@@ -19,8 +20,6 @@ lda_collapsed_gibbs_c <- function(K, V, ds, alpha.v, eta, max.iter=100, burn.in=
   
   # initializes the variables 
   
-  doc.N        <- ds$doc.N;                                         # document word counts
-  wid          <- ds$wid;                                           # word ids (1 X total.N vector)
   total.N      <- length(wid);                                      # the total number of word instances 
   n.alpha.v    <- alpha.v / sum(alpha.v);
   zid          <- sample(1:K, total.N, replace=T, prob=n.alpha.v);  # initial selection of topics for words
