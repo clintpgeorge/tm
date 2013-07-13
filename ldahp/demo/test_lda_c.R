@@ -14,14 +14,14 @@ D              <- 50                                   # the total number of doc
 V              <- 20                                   # the vocabulary size
 start          <- 0.2                                  # grid search -- begin coordinates 
 end            <- 12                                   # grid search -- end coordinates 
-interval       <- 0.4                                  # grid search -- interval 
+interval       <- 0.2                                  # grid search -- interval 
 max.iter       <- 5000                                # the maximum number of Gibbs iterations
 burn.in        <- 1000                                 # MCMC burn in period 
 spacing        <- 100                                  # spacing b/w the MCMC samples 
 lambda.hat     <- 80                                   # the number of words in each document 
 gen.alpha.v    <- c(7, 7)                              # symmetric Dirichlet
 gen.eta.v      <- array(7, c(1, V));                   # symmetric Dirichlet
-base.alpha.idx <- 528                                  # c(3, 3), when int=0.4, idx=528, int=0.2, idx=2075
+base.alpha.idx <- 2075                                 # c(7, 7), when int=0.4, idx=528, int=0.2, idx=2075
 store.Dir      <- 1                                    # store the \theta and \beta Dirichlet samples ? 
 
 
