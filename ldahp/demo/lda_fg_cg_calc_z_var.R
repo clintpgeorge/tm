@@ -6,7 +6,7 @@
 ## Last modified on: July 13, 2013 
 ##############################################################################################
 
-rdata.file     <- "fg_cg_ae33.z1.RData"
+rdata.file     <- "fg_cg_ae33.z.RData"
 
 
 ## Loads packages 

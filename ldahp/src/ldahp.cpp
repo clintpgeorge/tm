@@ -436,8 +436,7 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 
 	for (iter = 0; iter < max_iter; iter++){ 
 
-		if (iter % 100 == 0)
-			cout << "gibbs iter# " << iter + 1;
+		if (iter % 100 == 0) cout << "gibbs iter# " << iter + 1;
 
 		// samples \beta
 		prior_beta_counts = beta_counts; // this is used for log marginal posterior
@@ -483,32 +482,29 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 					vocab_size,
 					prior_theta_counts,
 					prior_beta_counts);
-
-			if (iter % 100 == 0)
-				cout << " lmp: " << log_marginal(count);
+			if (iter % 100 == 0) cout << " lmp: " << log_marginal(count);
 
 			count++;
 		}
 
 
-		if (iter % 100 == 0)
-			cout << endl;
+		if (iter % 100 == 0) cout << endl;
 
 	} // The end of the Gibbs loop
   
-  cout << "number of saved samples: " << count << endl; 
+	cout << "\nnumber of saved samples: " << count << endl;
   
 	if (store_dirichlet == 1){
 		return List::create(
-				Named("thetas") = wrap(thetas),
-				Named("betas") = wrap(betas),
-				Named("Z") = wrap(Z),
-				Named("lmp") = wrap(log_marginal));
+			Named("thetas") = wrap(thetas),
+			Named("betas") = wrap(betas),
+			Named("Z") = wrap(Z),
+			Named("lmp") = wrap(log_marginal));
 	}
 	else {
 		return List::create(
-				Named("Z") = wrap(Z),
-				Named("lmp") = wrap(log_marginal));
+			Named("Z") = wrap(Z),
+			Named("lmp") = wrap(log_marginal));
 	}
 
 
@@ -548,7 +544,11 @@ RcppExport SEXP lda_fg(SEXP num_topics_, SEXP vocab_size_,
 	mat avg_bs = zeros<mat>(num_topics, vocab_size);
 
 	mat prior_beta_samples = zeros<mat>(num_topics, vocab_size);
+	mat prior_beta_counts = zeros<mat>(num_topics, vocab_size);
+	mat prior_theta_samples = zeros<mat>(num_topics, num_docs);
+	mat prior_theta_counts = zeros <mat>(num_topics, num_docs);
 	mat beta_counts = zeros<mat>(num_topics, vocab_size);
+
 	vector < vector < size_t > > document_word_indices;
 	unsigned int d, i, k, iter, count = 0, instances = 0;
 	rowvec eta_v = zeros<rowvec>(vocab_size);
@@ -573,24 +573,19 @@ RcppExport SEXP lda_fg(SEXP num_topics_, SEXP vocab_size_,
 
 	// The Gibbs sampling loop
 
-	uvec prior_z = z;
-	mat prior_beta_counts = beta_counts;
-
 	for (iter = 0; iter < max_iter; iter++){
 
-		if (iter % 100 == 0)
-			cout << "gibbs iter# " << iter + 1;
+		if (iter % 100 == 0) cout << "gibbs iter# " << iter + 1;
 
-		mat prior_theta_samples = zeros<mat>(num_topics, num_docs);
-		mat prior_theta_counts = zeros <mat>(num_topics, num_docs);
+		// samples \beta
+		prior_beta_counts = beta_counts; // this is used for log marginal posterior
+		for(k = 0; k < num_topics; k++)
+			prior_beta_samples.row(k) = sample_dirichlet_row_vec(vocab_size, beta_counts.row(k));
+
 
 		for (d = 0; d < num_docs; d++){ // for each document
 
 			vector < size_t > word_idx = document_word_indices[d];
-
-			// samples \beta
-			for(k = 0; k < num_topics; k++)
-				prior_beta_samples.row(k) = sample_dirichlet_row_vec(vocab_size, beta_counts.row(k));
 
 			// samples \theta
 			vec partition_counts = alpha_v; // initializes with the smoothing parameter
@@ -617,16 +612,13 @@ RcppExport SEXP lda_fg(SEXP num_topics_, SEXP vocab_size_,
 			avg_bs += (prior_beta_counts / valid_samples);
 
 			log_marginal(count) = calc_log_marginal_posterior(num_topics, num_docs, vocab_size, prior_theta_counts, prior_beta_counts);
-			if (iter % 100 == 0)
-				cout << " lmp: " << log_marginal(count);
+
+			if (iter % 100 == 0) cout << " lmp: " << log_marginal(count);
 
 			count++;
 		}
 
-		prior_z = z;
-		prior_beta_counts = beta_counts;
-		if (iter % 100 == 0)
-			cout << endl;
+		if (iter % 100 == 0) cout << endl;
 
 	} // The end of the Gibbs loop
 
@@ -740,8 +732,7 @@ RcppExport SEXP lda_collapsed_gibbs(SEXP num_topics_, SEXP vocab_size_,
 
 	for (iter = 0; iter < max_iter; iter++){ // for each Gibbs iteration
 
-		if (iter % 100 == 0)
-			cout << "gibbs iter# " << iter + 1;
+		if (iter % 100 == 0) cout << "gibbs iter# " << iter + 1;
 
 		for (i = 0; i < num_word_instances; i++){ // for each word instance
 
@@ -781,14 +772,12 @@ RcppExport SEXP lda_collapsed_gibbs(SEXP num_topics_, SEXP vocab_size_,
 			}
 
 			log_marginal(count) = calc_log_marginal_posterior(num_topics, num_docs, vocab_size, theta_counts, beta_counts);
-			if (iter % 100 == 0)
-				cout << " lmp: " << log_marginal(count);
+			if (iter % 100 == 0) cout << " lmp: " << log_marginal(count);
 
 			count++;
 		}
 
-		if (iter % 100 == 0)
-			cout << endl;
+		if (iter % 100 == 0) cout << endl;
 
 	} // The end of the Gibbs loop
 
@@ -875,8 +864,7 @@ RcppExport SEXP lda_cg(SEXP num_topics_, SEXP vocab_size_,
 
 	for (iter = 0; iter < max_iter; iter++){ // for each Gibbs iteration
 
-		if (iter % 100 == 0)
-			cout << "gibbs iter# " << iter + 1;
+		if (iter % 100 == 0) cout << "gibbs iter# " << iter + 1;
 
 		for (i = 0; i < num_word_instances; i++){ // for each word instance
 
@@ -913,14 +901,12 @@ RcppExport SEXP lda_cg(SEXP num_topics_, SEXP vocab_size_,
 			avg_ts += (theta_counts / valid_samples);
 
 			log_marginal(count) = calc_log_marginal_posterior(num_topics, num_docs, vocab_size, theta_counts, beta_counts);
-			if (iter % 100 == 0)
-				cout << " lmp: " << log_marginal(count);
+			if (iter % 100 == 0) cout << " lmp: " << log_marginal(count);
 
 			count++;
 		}
 
-		if (iter % 100 == 0)
-			cout << endl;
+		if (iter % 100 == 0) cout << endl;
 
 	} // The end of the Gibbs loop
 
@@ -998,14 +984,12 @@ RcppExport SEXP lda_z_theta_fixed_beta(SEXP doc_lengths_, SEXP word_ids_,
 		document_word_indices.push_back(word_idx);
 	}
 
-	uvec prior_z = z;
 
 	// The Gibbs sampling loop
 
 	for (iter = 0; iter < max_iter; iter++){
 
-		if (iter % 1000 == 0)
-			cout << "gibbs iter# " << iter + 1;
+		if (iter % 100 == 0) cout << "gibbs iter# " << iter + 1;
 
 		for (d = 0; d < num_docs; d++){
 
@@ -1023,21 +1007,19 @@ RcppExport SEXP lda_z_theta_fixed_beta(SEXP doc_lengths_, SEXP word_ids_,
 		}
 
 		if ((iter >= burn_in) && (iter % sample_spacing == 0)){
-			Z.col(count) = prior_z;
+			Z.col(count) = z;
 			if (store_dirichlet == 1)
 				thetas.slice(count) = prior_theta_samples;
 			count++;
 		}
 
-		prior_z = z;
-		if (iter % 1000 == 0)
-			cout << endl;
+		if (iter % 100 == 0) cout << endl;
 	}
 
 	if (store_dirichlet == 1) {
 		return List::create(
-				Named("thetas") = wrap(thetas),
-				Named("Z") = wrap(Z));
+			Named("thetas") = wrap(thetas),
+			Named("Z") = wrap(Z));
 	}
 	else {
 		return List::create(Named("Z") = wrap(Z));
