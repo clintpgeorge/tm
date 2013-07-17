@@ -5,6 +5,62 @@
 ## Created on: July 13, 2013 
 ##############################################################################################
 
+## Loads packages 
+
+library(ldahp); 
+
+## Initialize variables
+
+set.seed(1983)
+
+K              <- 2 # the number of topics
+D              <- 100 # the total number of documents to be generated
+V              <- 20 # the vocabulary size
+max.iter       <- 10000 # the maximum number of Gibbs iterations
+burn.in        <- 1000
+spacing        <- 1
+lambda.hat     <- 80
+gen.eta        <- 3
+gen.alpha.v    <- c(3, 3)
+gen.eta.v      <- array(gen.eta, c(1, V));                   # symmetric Dirichlet
+rdata.file     <- "/home/clintpg/results/fg_cg_ae33.RData"
+store.Dir      <- 1                                    # store the \theta and \beta Dirichlet samples ? 
+
+## Generates the synthetic beta.m
+
+beta.m         <- matrix(1e-2, nrow=K, ncol=V)
+beta.m[1, ]    <- rdirichlet(1, gen.eta.v);
+beta.m[2, ]    <- rdirichlet(1, gen.eta.v);
+
+## Generates documents with a given beta.m
+
+ds             <- generate_docs_fixed_beta(D, lambda.hat, gen.alpha.v, beta.m);
+
+
+
+## The full Gibbs sampling
+
+ptm                <- proc.time();
+fg.mdl             <- lda_full_c2(K, V, ds$wid, ds$doc.N, gen.alpha.v, gen.eta, max.iter, burn.in, spacing, store.Dir);
+ptm                <- proc.time() - ptm;
+cat("execution time = ", ptm[3], "\n");
+
+
+## The collapsed Gibbs sampling
+
+ptm               <- proc.time();
+cg.mdl            <- lda_collapsed_gibbs_c(K, V, ds$wid, ds$doc.N, gen.alpha.v, gen.eta, max.iter, burn.in, spacing, store.Dir);
+ptm               <- proc.time() - ptm;
+cat("execution time = ", ptm[3], "\n");
+
+
+## Saves every object into a file
+
+save.image(rdata.file)
+
+
+##############################################################################################
+
 # Init file names 
 
 rdata.file <- "/home/clintpg/results/fg_cg_ae33.RData"

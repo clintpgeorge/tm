@@ -393,7 +393,7 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 	int num_word_instances = word_ids.n_elem;
 	int valid_samples = ceil((max_iter - burn_in) / (double) spacing);
   
-  // cout << "number of saved samples: " << valid_samples << endl; 
+    // cout << "number of saved samples: " << valid_samples << endl;
   
 	cube thetas;
 	cube betas;
@@ -405,7 +405,11 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 	vec log_marginal = zeros<vec>(valid_samples);
 
 	mat prior_beta_samples = zeros<mat>(num_topics, vocab_size);
+	mat prior_beta_counts = zeros<mat>(num_topics, vocab_size);
+	mat prior_theta_samples = zeros<mat>(num_topics, num_docs);
+	mat prior_theta_counts = zeros <mat>(num_topics, num_docs);
 	mat beta_counts = zeros<mat>(num_topics, vocab_size);
+
 	vector < vector < size_t > > document_word_indices;
 	unsigned int d, i, k, iter, count = 0, instances = 0;
 	rowvec eta_v = zeros<rowvec>(vocab_size);
@@ -430,24 +434,20 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 
 	// The Gibbs sampling loop
 
-	uvec prior_z = z;
-	mat prior_beta_counts = beta_counts;
-
 	for (iter = 0; iter < max_iter; iter++){ 
 
-		if (iter % 1000 == 0)
+		if (iter % 100 == 0)
 			cout << "gibbs iter# " << iter + 1;
 
-		mat prior_theta_samples = zeros<mat>(num_topics, num_docs);
-		mat prior_theta_counts = zeros <mat>(num_topics, num_docs);
+		// samples \beta
+		prior_beta_counts = beta_counts; // this is used for log marginal posterior
+		for(k = 0; k < num_topics; k++)
+			prior_beta_samples.row(k) = sample_dirichlet_row_vec(vocab_size, beta_counts.row(k));
+
 
 		for (d = 0; d < num_docs; d++){ // for each document
 
 			vector < size_t > word_idx = document_word_indices[d];
-
-			// samples \beta
-			for(k = 0; k < num_topics; k++)
-				prior_beta_samples.row(k) = sample_dirichlet_row_vec(vocab_size, beta_counts.row(k));
 
 			// samples \theta
 			vec partition_counts = alpha_v; // initializes with the smoothing parameter
@@ -458,7 +458,7 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 			prior_theta_counts.col(d) = partition_counts;
 
 
-			// samples z
+			// samples z and updates \beta counts
 			for(i = 0; i < doc_lengths(d); i++)
 				beta_counts(z(word_idx[i]), word_ids(word_idx[i])) -= 1; // excludes document d's word-topic counts
 			for (i = 0; i < doc_lengths(d); i++)
@@ -468,23 +468,30 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 
 		}
 
-		if ((iter >= burn_in) && (iter % spacing == 0)){ // Handles burn in period 
-			Z.col(count) = prior_z;
+		if ((iter >= burn_in) && (iter % spacing == 0)){ // Handles burn in period
+
+			// Note: prior_theta_samples and prior_beta_samples are from old z
+			Z.col(count) = z;
 			if (store_dirichlet == 1){
-				thetas.slice(count) = prior_theta_samples; // theta_counts still has the counts from old z
+				thetas.slice(count) = prior_theta_samples;
 				betas.slice(count) = prior_beta_samples;
 			}
 
-			log_marginal(count) = calc_log_marginal_posterior(num_topics, num_docs, vocab_size, prior_theta_counts, prior_beta_counts);
-			if (iter % 1000 == 0)
+			log_marginal(count) = calc_log_marginal_posterior(
+					num_topics,
+					num_docs,
+					vocab_size,
+					prior_theta_counts,
+					prior_beta_counts);
+
+			if (iter % 100 == 0)
 				cout << " lmp: " << log_marginal(count);
 
 			count++;
 		}
 
-		prior_z = z;
-		prior_beta_counts = beta_counts;
-		if ((iter+1) % 1000 == 0)
+
+		if (iter % 100 == 0)
 			cout << endl;
 
 	} // The end of the Gibbs loop
@@ -618,7 +625,7 @@ RcppExport SEXP lda_fg(SEXP num_topics_, SEXP vocab_size_,
 
 		prior_z = z;
 		prior_beta_counts = beta_counts;
-		if ((iter+1) % 100 == 0)
+		if (iter % 100 == 0)
 			cout << endl;
 
 	} // The end of the Gibbs loop
@@ -733,7 +740,7 @@ RcppExport SEXP lda_collapsed_gibbs(SEXP num_topics_, SEXP vocab_size_,
 
 	for (iter = 0; iter < max_iter; iter++){ // for each Gibbs iteration
 
-		if (iter % 1000 == 0)
+		if (iter % 100 == 0)
 			cout << "gibbs iter# " << iter + 1;
 
 		for (i = 0; i < num_word_instances; i++){ // for each word instance
@@ -774,13 +781,13 @@ RcppExport SEXP lda_collapsed_gibbs(SEXP num_topics_, SEXP vocab_size_,
 			}
 
 			log_marginal(count) = calc_log_marginal_posterior(num_topics, num_docs, vocab_size, theta_counts, beta_counts);
-			if (iter % 1000 == 0)
+			if (iter % 100 == 0)
 				cout << " lmp: " << log_marginal(count);
 
 			count++;
 		}
 
-		if (iter % 1000 == 0)
+		if (iter % 100 == 0)
 			cout << endl;
 
 	} // The end of the Gibbs loop
