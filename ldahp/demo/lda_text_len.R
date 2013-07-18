@@ -81,13 +81,13 @@ generate_lda_docs <- function(doc.N, alpha.v, beta)
 # # --------------------------------------------------------------------------------------
 
 
-## Initialize variables
+## Experiment #1 
 
 set.seed(1983)
 
 K              <- 30 # the number of topics
-D              <- 501 # the total number of documents to be generated
-V              <- 50 # the vocabulary size
+D              <- 101 # the total number of documents to be generated
+V              <- 200 # the vocabulary size
 max.iter       <- 20000 # the maximum number of Gibbs iterations
 burn.in        <- 5000
 spacing        <- 10
@@ -96,7 +96,7 @@ gen.eta        <- 3
 gen.alpha      <- 3
 gen.alpha.v    <- array(gen.alpha, c(1, K)); 
 gen.eta.v      <- array(gen.eta, c(1, V));                   # symmetric Dirichlet
-rdata_file     <- "lda_text_len_d2.RData"
+rdata_file     <- "lda_text_len_d3.RData"
 
 
 ## Generates the synthetic beta.m
@@ -111,12 +111,12 @@ ds             <- generate_lda_docs(doc.N, gen.alpha.v, beta.m);
 
 
 
-## The full Gibbs sampling
-
-ptm            <- proc.time();
-fg.mdl         <- lda_fg(K, V, ds$wid, ds$doc.N, gen.alpha.v, gen.eta, max.iter, burn.in, spacing);
-ptm            <- proc.time() - ptm;
-cat("execution time = ", ptm[3], "\n");
+# ## The full Gibbs sampling
+# 
+# ptm            <- proc.time();
+# fg.mdl         <- lda_fg(K, V, ds$wid, ds$doc.N, gen.alpha.v, gen.eta, max.iter, burn.in, spacing);
+# ptm            <- proc.time() - ptm;
+# cat("execution time = ", ptm[3], "\n");
 
 
 # ## The collapsed Gibbs sampling
