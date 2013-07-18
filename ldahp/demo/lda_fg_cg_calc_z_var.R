@@ -85,5 +85,37 @@ save.image(rdata.file)
 # ct <- table(cg.mdl$Z[word.id,])/num.samples; 
 # sqrt(sum((ft - ct)^2))
 
-# --------------------------------------------------------------------------------------
+
+
+##############################################################################################
+## The below script is used to compare the \theta estimates from 
+## the collapsed Gibbs sampler (Griffiths, 2004) and the theta samples 
+## from the full Gibbs sampler (Fuentes, 2010) 
+##############################################################################################
+
+
+library(ldahp); 
+load("fg_cg_ae108_z.RData")
+
+
+num.samples <- dim(fg.mdl$theta)[3]
+fg.theta <- matrix(0, nrow=K, ncol=D)
+cg.theta <- matrix(0, nrow=K, ncol=D)
+
+for (i in 1:num.samples){
+  # compute the average of the theta samples which is from the full GS chain 
+  fg.theta <- fg.theta + (fg.mdl$theta[,,i] / num.samples);
+  
+  # compute  the average of the theta estimates which is from the collapsed GS chain  
+  cg.theta <- cg.theta + (normalize(cg.mdl$theta[,,i], dim=1) / num.samples);
+}
+
+# full GS and collapsed GS theta_d error 
+mean(colSums((fg.theta - cg.theta)^2));
+sd(colSums((fg.theta - cg.theta)^2));
+
+
+
+
+
 
