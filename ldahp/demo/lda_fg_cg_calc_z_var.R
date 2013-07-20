@@ -94,7 +94,8 @@ save.image(rdata.file)
 ##############################################################################################
 
 
-library(ldahp); 
+
+
 load("fg_cg_ae108_z.RData")
 
 
@@ -116,6 +117,17 @@ sd(colSums((fg.theta - cg.theta)^2));
 
 
 
+# two-sample test 
+library(ldahp); 
+load("fg_cg_ae33_z.RData")
 
+d <- 5
+fgt.d <- fg.mdl$theta[, d, ]
+cgt.d <- normalize(cg.mdl$theta[, d, ], dim=1) # normalize over the columns 
 
+# t-test using the vector of theta_d vectors 
+t.test(fgt.d, cgt.d)
+
+# t-test using the vector of the first element of theta_d vectors 
+t.test(fgt.d[1,], cgt.d[1,])
 
