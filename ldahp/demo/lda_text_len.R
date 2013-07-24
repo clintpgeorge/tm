@@ -76,6 +76,9 @@ generate_lda_docs <- function(doc.N, alpha.v, beta)
 }
 
 
+
+
+
 # # --------------------------------------------------------------------------------------
 # # Generates synthetic data and Gibbs sampler runs   
 # # --------------------------------------------------------------------------------------
@@ -85,6 +88,7 @@ generate_lda_docs <- function(doc.N, alpha.v, beta)
 
 set.seed(1983)
 
+store.Dir      <- 1
 K              <- 30 # the number of topics
 D              <- 101 # the total number of documents to be generated
 V              <- 200 # the vocabulary size
@@ -96,7 +100,7 @@ gen.eta        <- 3
 gen.alpha      <- 3
 gen.alpha.v    <- array(gen.alpha, c(1, K)); 
 gen.eta.v      <- array(gen.eta, c(1, V));                   # symmetric Dirichlet
-rdata_file     <- "lda_text_len_d3.RData"
+rdata.file     <- "lda_text_len_d6.RData"
 
 
 ## Generates the synthetic beta.m
@@ -109,7 +113,21 @@ doc.N          <- array(lambda.hat, dim=c(D, 1));
 doc.N[D]       <- 10000
 ds             <- generate_lda_docs(doc.N, gen.alpha.v, beta.m);
 
+## To down sample the last document 
+new.ds <- ds 
+down.sample.size <- 50 
+num.words <- length(new.ds$wid)
+ln <- length(new.ds$wid) - new.ds$doc.N[D]
+idx <- sample(ln:num.words)[1:down.sample.size]
 
+w.d <- new.ds$wid[idx] # down sample of words 
+d.d <- new.ds$did[idx] # down sample of document ids
+wid <- new.ds$wid[1:ln]
+did <- new.ds$did[1:ln]
+
+new.ds$wid <- append(wid, w.d); # new word vector 
+new.ds$did <- append(did, d.d); # new doc vector 
+new.ds$doc.N[D] <- down.sample.size
 
 # ## The full Gibbs sampling
 # 
@@ -119,15 +137,48 @@ ds             <- generate_lda_docs(doc.N, gen.alpha.v, beta.m);
 # cat("execution time = ", ptm[3], "\n");
 
 
-# ## The collapsed Gibbs sampling
+## The collapsed Gibbs sampling
 
-ptm               <- proc.time();
-cg.mdl            <- lda_cg(K, V, ds$wid, ds$doc.N, gen.alpha.v, gen.eta, max.iter, burn.in, spacing);
-ptm               <- proc.time() - ptm;
+
+# #########################################################
+# ## If you average the samples 
+# #########################################################
+# 
+# ptm               <- proc.time();
+# cg1.mdl            <- lda_cg(K, V, ds$wid, ds$doc.N, gen.alpha.v, gen.eta, max.iter, burn.in, spacing);
+# ptm               <- proc.time() - ptm;
+# cat("execution time = ", ptm[3], "\n");
+# 
+# 
+# ptm               <- proc.time();
+# cg2.mdl          <- lda_cg(K, V, new.ds$wid, new.ds$doc.N, gen.alpha.v, gen.eta, max.iter, burn.in, spacing);
+# ptm               <- proc.time() - ptm;
+# cat("execution time = ", ptm[3], "\n");
+# 
+# 
+# save.image(rdata.file)
+# 
+# rdata.file <- 'lda_text_len_d5.RData'
+# load(rdata.file)
+# d.id <- 1
+# sqrt(sum((cg1.mdl$theta[,d.id] - cg2.mdl$theta[,d.id])^2))
+# 
+# #########################################################
+
+
+ptm            <- proc.time();
+cg.mdl         <- lda_collapsed_gibbs_c(K, V, ds$wid, ds$doc.N, gen.alpha.v, gen.eta, max.iter, burn.in, spacing, store.Dir);
+ptm            <- proc.time() - ptm;
 cat("execution time = ", ptm[3], "\n");
 
 
-save.image(rdata_file)
+ptm            <- proc.time();
+cg.mdl         <- lda_collapsed_gibbs_c(K, V, new.ds$wid, new.ds$doc.N, gen.alpha.v, gen.eta, max.iter, burn.in, spacing, store.Dir);
+ptm            <- proc.time() - ptm;
+cat("execution time = ", ptm[3], "\n");
+
+
+save.image(rdata.file)
 
 
 

@@ -112,8 +112,8 @@ for (i in 1:num.samples){
 }
 
 # full GS and collapsed GS theta_d error 
-mean(colSums((fg.theta - cg.theta)^2));
-sd(colSums((fg.theta - cg.theta)^2));
+mean(sqrt(colSums((fg.theta - cg.theta)^2)));
+sd(sqrt(colSums((fg.theta - cg.theta)^2)));
 
 
 
