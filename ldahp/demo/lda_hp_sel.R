@@ -4,6 +4,7 @@
 ## Here, we use the C++ implementation of the Gibbs sampler.  
 ## This can support heyperparametrs taken from a 2-dimensional plane.
 ##################################################################################
+rm(list=ls());
 
 # load the necessary libraries
 library(ldahp);
@@ -48,7 +49,7 @@ end            <- 12
 interval       <- 0.2
 max.iter       <- 61000 # the maximum number of Gibbs iterations
 burn.in        <- 1000
-spacing        <- 5
+spacing        <- 50
 lambda.hat     <- 80
 store.Dir      <- 1
 
