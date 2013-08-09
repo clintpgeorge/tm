@@ -40,46 +40,60 @@ eps.bh.surface <- function(ratios, start, end, interval, xlabel, ylabel, zlabel,
   round(res, 3);
   
 }
-rm(list = setdiff(ls(), lsf.str()))
+
 
 ## Plots surface for different experiments 
 
+# 1 
+rm(list = setdiff(ls(), lsf.str()));
+rdata.file     <- "/home/clintpg/results/fg_ea33.RData"
+load(rdata.file)
 
 xlabel     <- "alpha"
 ylabel     <- "eta"
 zlabel     <- "Estimate of B(h)"
+splot.file      <- "/home/clintpg/results/fg_ea33.eps"
+splot.title     <- "true h = (3, 3)"
+eps.bh.surface(ratios, start, end, interval, xlabel, ylabel, zlabel, splot.title, splot.file)
 
+# 2 
+rm(list = setdiff(ls(), lsf.str()));
+rdata.file     <- "/home/clintpg/results/fg_ea73.RData"
+load(rdata.file)
 
-# # 1 
-# rdata.file     <- "/home/clintpg/results/fg_ea33.RData"
-# load(rdata.file)
-# splot.file      <- "/home/clintpg/results/fg_ea33.eps"
-# splot.title     <- "true h = (3, 3)"
-# eps.bh.surface(ratios, start, end, interval, xlabel, ylabel, zlabel, splot.title, splot.file)
+xlabel     <- "alpha"
+ylabel     <- "eta"
+zlabel     <- "Estimate of B(h)"
+splot.file      <- "/home/clintpg/results/fg_ea73.eps"
+splot.title     <- "true h = (7, 3)"
+eps.bh.surface(ratios, start, end, interval, xlabel, ylabel, zlabel, splot.title, splot.file)
 
-# # 2 
-# rdata.file     <- "/home/clintpg/results/fg_ea73.RData"
-# splot.file      <- "/home/clintpg/results/fg_ea73.eps"
-# splot.title     <- "true h = (7, 3)"
-# load(rdata.file)
-# eps.bh.surface(ratios, start, end, interval, xlabel, ylabel, zlabel, splot.title, splot.file)
+# 3
+rm(list = setdiff(ls(), lsf.str()));
+rdata.file     <- "fg_ea77.RData"
+load(rdata.file)
 
-# # 3
-# rdata.file     <- "fg_ea77.RData"
-# load(rdata.file)
-# splot.file      <- "fg_ea77.eps"
-# splot.title     <- "true h = (7, 7)"
-# eps.bh.surface(ratios, start, end, interval, xlabel, ylabel, zlabel, splot.title, splot.file)
+xlabel     <- "alpha"
+ylabel     <- "eta"
+zlabel     <- "Estimate of B(h)"
+splot.file      <- "/home/clintpg/results/fg_ea77.eps"
+splot.title     <- "true h = (7, 7)"
+eps.bh.surface(ratios, start, end, interval, xlabel, ylabel, zlabel, splot.title, splot.file)
 
 # 4 
+rm(list = setdiff(ls(), lsf.str()));
 rdata.file     <- "/home/clintpg/results/fg_ea108.RData"
+load(rdata.file)
+
+xlabel     <- "alpha"
+ylabel     <- "eta"
+zlabel     <- "Estimate of B(h)"
 splot.file      <- "/home/clintpg/results/fg_ea108.eps"
 splot.title     <- "true h = (10, 8)"
-load(rdata.file)
 eps.bh.surface(ratios, start, end, interval, xlabel, ylabel, zlabel, splot.title, splot.file)
 
 
-rm(list=ls())
+rm(list=ls());
 
 
 
