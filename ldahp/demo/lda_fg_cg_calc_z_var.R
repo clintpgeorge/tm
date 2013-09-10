@@ -6,9 +6,9 @@
 ## Last modified on: July 13, 2013 
 ##############################################################################################
 
-rdata.file <- "fg_cg_ea33.z.RData"
-pvalues.hist.file <- "fg_cg_ea33_pvalues_hist.eps"
-pvalues.hist.title <- "ea=(3,3) p-values' histogram"
+rdata.file <- "fg_cg_ea33_pvalues.RData"
+pvalues.hist.file <- "fg_cg_ea33_pvalues.eps"
+pvalues.hist.title <- "h=(3,3): p-values"
 
 ## Loads packages 
 

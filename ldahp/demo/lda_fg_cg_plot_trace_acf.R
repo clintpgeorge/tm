@@ -84,13 +84,13 @@ postscript(file=log.marginal.posterior.plot, title="log marginal posterior plots
 par(mfrow = c(2, 2))
 
 x.axis <- (burn.in+1):(burn.in+dim(fg.mdl$lmp)[1])
-plot(x.axis, fg.mdl$lmp[,1], type="l", col="blue", ylab="log marginal posterior", xlab="GS iterations", main=expression(paste("GS on (", beta, ", ", theta, ", z): log marginal posterior (trace)")), lwd=0.4, ylim=c(59500, 60300), cex = 1.5, cex.lab = 1.5, cex.main = 1.2) 
-plot(x.axis, cg.mdl$lmp[,1], type="l", col="black", ylab="log marginal posterior", xlab="GS iterations", main=expression(paste("GS on (z): log marginal posterior (trace)")), lwd=0.4, ylim=c(59500, 60300), cex = 1.5, cex.lab = 1.5, cex.main = 1.2) 
+plot(x.axis, fg.mdl$lmp[,1], type="l", col="blue", ylab="Log marginal posterior", xlab="Iteration", main="Full Gibbs Sampler", lwd=0.4, ylim=c(59500, 60300), cex = 2, cex.lab = 1.5, cex.main = 1.2) 
+plot(x.axis, cg.mdl$lmp[,1], type="l", col="black", ylab="Log marginal posterior", xlab="Iteration", main="Augmented Collapsed Gibbs Sampler", lwd=0.4, ylim=c(59500, 60300), cex = 2, cex.lab = 1.5, cex.main = 1.2) 
 
 # acf on the log marginal posterior 
 
-acf(fg.mdl$lmp[,1], lag.max=100, main=expression(paste("GS on (", beta, ", ", theta, ", z): log marginal posterior (acf)")), cex = 1.5, cex.lab = 1.5, cex.main = 3)
-acf(cg.mdl$lmp[,1], lag.max=100, main=expression(paste("GS on (z): log marginal posterior (acf)")), cex = 1.5, cex.lab = 1.5, cex.main = 3)
+acf(fg.mdl$lmp[,1], lag.max=100, main="Full Gibbs Sampler", cex = 2, cex.lab = 1.5, cex.main = 3)
+acf(cg.mdl$lmp[,1], lag.max=100, main="Augmented Collapsed Gibbs Sampler", cex = 2, cex.lab = 1.5, cex.main = 3)
 
 dev.off()
 
@@ -103,13 +103,13 @@ postscript(file=log.posterior.plot, title="Log posterior plots", horiz=F)
 par(mfrow = c(2, 2))
 
 x.axis <- (burn.in+1):(burn.in+dim(fg.mdl$lmp)[1])
-plot(x.axis, fg.mdl$lmp[,1], type="l", col="blue", ylab="Log posterior", xlab="iteration", main=expression(paste("GS on (", beta, ", ", theta, ", z): log marginal posterior (trace)")), lwd=0.4, ylim=c(59500, 60300), cex = 1.5, cex.lab = 1.5, cex.main = 1.2) 
-plot(x.axis, cg.mdl$lmp[,1], type="l", col="black", ylab="Log posterior", xlab="iteration", main=expression(paste("GS on (z): log marginal posterior (trace)")), lwd=0.4, ylim=c(59500, 60300), cex = 1.5, cex.lab = 1.5, cex.main = 1.2) 
+plot(x.axis, fg.mdl$lmp[,1], type="l", col="blue", ylab="Log posterior", xlab="Iteration", main="Full Gibbs Sampler", lwd=0.4, cex = 2, cex.lab = 1.5, cex.main = 1.2) # ylim=c(59500, 60300), 
+plot(x.axis, cg.mdl$lmp[,1], type="l", col="black", ylab="Log posterior", xlab="Iteration", main="Augmented Collapsed Gibbs Sampler", lwd=0.4, cex = 2, cex.lab = 1.5, cex.main = 1.2) # ylim=c(59500, 60300), 
 
 # acf on the log marginal posterior 
 
-acf(fg.mdl$lmp[,1], lag.max=100, main=expression(paste("GS on (", beta, ", ", theta, ", z): log posterior (acf)")), cex = 1.5, cex.lab = 1.5, cex.main = 3)
-acf(cg.mdl$lmp[,1], lag.max=100, main=expression(paste("GS on (z): log posterior (acf)")), cex = 1.5, cex.lab = 1.5, cex.main = 3)
+acf(fg.mdl$lmp[,1], lag.max=100, main="Full Gibbs Sampler", cex = 2, cex.lab = 1.5, cex.main = 3)
+acf(cg.mdl$lmp[,1], lag.max=100, main="Augmented Collapsed Gibbs Sampler", cex = 2, cex.lab = 1.5, cex.main = 3)
 
 dev.off()
 
@@ -120,24 +120,24 @@ dev.off()
 
 # acf computed on the theta counts 
 
-postscript(file=theta.acf.plot, title="theta elements' trace plots", horiz=F)  
+postscript(file=theta.acf.plot, title="theta elements' acf plots", horiz=F)  
 par(mfrow = c(2,2))
-acf(fg.mdl$theta[1,1,], lag.max=50, main=expression(paste("GS on (", beta, ", ", theta, ", z): sample of ", theta)[1][1]), lwd=3, cex = 1.5, cex.lab = 1.5, cex.main = 1.5)
-acf(cg.mdl$theta[1,1,], lag.max=50, main=expression(paste("GS on (z): estimate of ", theta)[1][1]), lwd=3, cex = 1.5, cex.lab = 1.5, cex.main = 1.5)
+acf(fg.mdl$theta[1,1,], lag.max=50, main=expression(paste("FGS: ACF for ", theta)[1][1]), lwd=3, cex = 2, cex.lab = 1.5, cex.main = 1.5)
+acf(cg.mdl$theta[1,1,], lag.max=50, main=expression(paste("ACGS: ACF for ", theta)[1][1]), lwd=3, cex = 2, cex.lab = 1.5, cex.main = 1.5)
 
-acf(fg.mdl$theta[1,8,], lag.max=50, main=expression(paste("GS on (", beta, ", ", theta, ", z): sample of ", theta)[8][1]), lwd=3, cex = 1.5, cex.lab = 1.5, cex.main = 1.5)
-acf(cg.mdl$theta[1,8,], lag.max=50, main=expression(paste("GS on (z): estimate of ", theta)[8][1]), lwd=3, cex = 1.5, cex.lab = 1.5, cex.main = 1.5)
+acf(fg.mdl$theta[1,8,], lag.max=50, main=expression(paste("FGS: ACF for ", theta)[8][1]), lwd=3, cex = 2, cex.lab = 1.5, cex.main = 1.5)
+acf(cg.mdl$theta[1,8,], lag.max=50, main=expression(paste("ACGS: ACF for ", theta)[8][1]), lwd=3, cex = 2, cex.lab = 1.5, cex.main = 1.5)
 dev.off()
 
 # acf computed on the beta counts 
 
-postscript(file=beta.acf.plot, title="beta elements' trace plots", horiz=F)  
+postscript(file=beta.acf.plot, title="beta elements' acf plots", horiz=F)  
 par(mfrow = c(2,2))
-acf(fg.mdl$beta[1,1,], lag.max=50, main=expression(paste("GS on (", beta, ", ", theta, ", z): sample of ", beta)[1][1]), lwd=3, cex = 1.5, cex.lab = 1.5, cex.main = 1.5)
-acf(cg.mdl$beta[1,1,], lag.max=50, main=expression(paste("GS on (z): estimate of ", beta)[1][1]), lwd=3, cex = 1.5, cex.lab = 1.5, cex.main = 1.5)
+acf(fg.mdl$beta[1,1,], lag.max=50, main=expression(paste("FGS: ACF for ", beta)[1][1]), lwd=3, cex = 2, cex.lab = 1.5, cex.main = 1.5)
+acf(cg.mdl$beta[1,1,], lag.max=50, main=expression(paste("ACGS: ACF for ", beta)[1][1]), lwd=3, cex = 2, cex.lab = 1.5, cex.main = 1.5)
 
-acf(fg.mdl$beta[1,4,], lag.max=50, main=expression(paste("GS on (", beta, ", ", theta, ", z): sample of ", beta)[1][4]), lwd=3, cex = 1.5, cex.lab = 1.5, cex.main = 1.5)
-acf(cg.mdl$beta[1,4,], lag.max=50, main=expression(paste("GS on (z): estimate of ", beta)[1][4]), lwd=3, cex = 1.5, cex.lab = 1.5, cex.main = 1.5)
+acf(fg.mdl$beta[1,4,], lag.max=50, main=expression(paste("FGS: ACF for ", beta)[1][4]), lwd=3, cex = 2, cex.lab = 1.5, cex.main = 1.5)
+acf(cg.mdl$beta[1,4,], lag.max=50, main=expression(paste("ACGS: ACF for ", beta)[1][4]), lwd=3, cex = 2, cex.lab = 1.5, cex.main = 1.5)
 dev.off()
 
 
