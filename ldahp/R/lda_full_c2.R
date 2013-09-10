@@ -28,6 +28,6 @@ lda_full_c2 <- function(K, V, wid, doc.N, alpha.v, eta, max.iter=100, burn.in=0,
   # we substract zid and wid with one because, in C the indexing starts at zero 
   ret          <- .Call("lda_full2", K, V, doc.N, wid-1, zid-1, alpha.v, eta, max.iter, burn.in, spacing, store.Dir, PACKAGE="ldahp");
   
-  list(Z=ret$Z+1, thetas=ret$thetas, betas=ret$betas, lmp=ret$lmp);
+  list(Z=ret$Z+1, theta=ret$thetas, beta=ret$betas, lmp=ret$lmp, lp=ret$lp);
   
 }

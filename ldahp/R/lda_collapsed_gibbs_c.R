@@ -29,6 +29,6 @@ lda_collapsed_gibbs_c <- function(K, V, wid, doc.N, alpha.v, eta, max.iter=100, 
   # we assume that the vocab-id also starts at zero
   ret          <- .Call("lda_collapsed_gibbs", K, V, doc.N, wid-1, zid-1, alpha.v, eta, max.iter, burn.in, spacing, store.Dir, PACKAGE="ldahp");
   
-  list(Z=ret$Z+1, thetas=ret$thetas, betas=ret$betas, lmp=ret$lmp);
+  list(Z=ret$Z+1, theta=ret$thetas, beta=ret$betas, lmp=ret$lmp, lp=ret$lp);
   
 }

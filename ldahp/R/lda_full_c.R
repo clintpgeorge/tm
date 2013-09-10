@@ -30,7 +30,7 @@ lda_full_c <- function(K, V, ds, alpha.v, eta, max.iter=100, burn.in=0, spacing=
     # read.ldac.documents function from lda.R
     ret          <- .Call("lda_full", K, V, ds$doc.N, ds$docs, zid-1, alpha.v, eta, max.iter, burn.in, spacing, store.Dir, PACKAGE="ldahp");
     
-    list(Z=ret$Z+1, thetas=ret$thetas, betas=ret$betas, lmp=ret$lmp);
+    list(Z=ret$Z+1, theta=ret$thetas, beta=ret$betas, lmp=ret$lmp);
 
 }
 

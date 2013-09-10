@@ -150,6 +150,49 @@ double calc_log_marginal_posterior(
 
 }
 
+/***
+ * Computes log posterior based on (3.4)
+ */
+double calc_log_posterior(
+		mat prior_theta,
+		mat prior_beta,
+		vector < vector < size_t > > doc_word_indices,
+		uvec doc_lengths,
+		uvec word_ids,
+		uvec z,
+		vec alpha_v,
+		double eta){
+
+	double lp = 0.0;
+	unsigned int d, i, num_docs, num_topics, vocab_size;
+	mat log_prior_theta = log(prior_theta);
+	mat log_prior_beta = log(prior_beta);
+	num_topics = prior_beta.n_rows;
+	vocab_size = prior_beta.n_cols;
+	num_docs = prior_theta.n_cols;
+
+
+	for (d = 0; d < num_docs; d++){ // for each document
+
+		vector < size_t > word_idx = doc_word_indices[d];
+
+		vec n_dj = zeros<vec>(num_topics);
+		mat m_djt = zeros<mat>(num_topics, vocab_size);
+		for (i = 0; i < doc_lengths(d); i++){
+			n_dj(z(word_idx[i])) += 1;
+			m_djt(z(word_idx[i]), word_ids(word_idx[i])) += 1;
+		}
+
+		lp += accu(m_djt % log_prior_beta);
+		lp += accu((n_dj + alpha_v - 1.0) % log_prior_theta.col(d));
+
+	}
+
+	lp += accu((eta - 1.0) * log_prior_beta);
+
+	return lp;
+}
+
 
 
 
@@ -367,7 +410,7 @@ RcppExport SEXP lda_full(SEXP num_topics_, SEXP vocab_size_, SEXP doc_lengths_, 
  * 		Z - the sampled word topic assignments after burn in period
  *
  */
-RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_, 
+RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 		SEXP doc_lengths_, SEXP word_ids_,
 		SEXP topic_assignments_, SEXP alpha_v_, SEXP eta_,
 		SEXP max_iter_, SEXP burn_in_, SEXP spacing_, SEXP store_dirichlet_) {
@@ -403,6 +446,7 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 	}
 	umat Z = zeros<umat>(num_word_instances, valid_samples);
 	vec log_marginal = zeros<vec>(valid_samples);
+	vec log_posterior = zeros<vec>(valid_samples);
 
 	mat prior_beta_samples = zeros<mat>(num_topics, vocab_size);
 	mat prior_beta_counts = zeros<mat>(num_topics, vocab_size);
@@ -410,7 +454,7 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 	mat prior_theta_counts = zeros <mat>(num_topics, num_docs);
 	mat beta_counts = zeros<mat>(num_topics, vocab_size);
 
-	vector < vector < size_t > > document_word_indices;
+	vector < vector < size_t > > doc_word_indices;
 	unsigned int d, i, k, iter, count = 0, instances = 0;
 	rowvec eta_v = zeros<rowvec>(vocab_size);
 	for(k = 0; k < vocab_size; k++)
@@ -423,7 +467,7 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 			word_idx.push_back(instances);
 			instances++;
 		}
-		document_word_indices.push_back(word_idx);
+		doc_word_indices.push_back(word_idx);
 	}
 
 	// Initilizes beta
@@ -446,7 +490,7 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 
 		for (d = 0; d < num_docs; d++){ // for each document
 
-			vector < size_t > word_idx = document_word_indices[d];
+			vector < size_t > word_idx = doc_word_indices[d];
 
 			// samples \theta
 			vec partition_counts = alpha_v; // initializes with the smoothing parameter
@@ -470,7 +514,9 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 		if ((iter >= burn_in) && (iter % spacing == 0)){ // Handles burn in period
 
 			// Note: prior_theta_samples and prior_beta_samples are from old z
+
 			Z.col(count) = z;
+
 			if (store_dirichlet == 1){
 				thetas.slice(count) = prior_theta_samples;
 				betas.slice(count) = prior_beta_samples;
@@ -482,7 +528,17 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 					vocab_size,
 					prior_theta_counts,
 					prior_beta_counts);
-			if (iter % 100 == 0) cout << " lmp: " << log_marginal(count);
+
+			// Computes log posterior based on (3.4)
+
+			log_posterior(count) = calc_log_posterior(
+					prior_theta_samples, prior_beta_samples,
+					doc_word_indices, doc_lengths,
+					word_ids, z,
+					alpha_v, eta);
+
+
+			if (iter % 100 == 0) cout << " lmp: " << log_marginal(count) << " lp: " << log_posterior(count);
 
 			count++;
 		}
@@ -499,12 +555,14 @@ RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
 			Named("thetas") = wrap(thetas),
 			Named("betas") = wrap(betas),
 			Named("Z") = wrap(Z),
-			Named("lmp") = wrap(log_marginal));
+			Named("lmp") = wrap(log_marginal),
+			Named("lp") = wrap(log_posterior));
 	}
 	else {
 		return List::create(
 			Named("Z") = wrap(Z),
-			Named("lmp") = wrap(log_marginal));
+			Named("lmp") = wrap(log_marginal),
+			Named("lp") = wrap(log_posterior));
 	}
 
 
@@ -653,6 +711,8 @@ RcppExport SEXP lda_fg(SEXP num_topics_, SEXP vocab_size_,
  * 		max_iter_ - max number of Gibbs iterations
  * 		burn_in_ - burn in period
  * 		spacing_ - spacing between samples that are stored
+ * 		store_dirichlet_ - 	[1] - augments the collapsed GS chain with \beta and theta samples,
+ * 							[0] - collapsed GS chain
  *
  * 	Returns:
  * 		thetas - the sampled thetas after burn in period
@@ -690,6 +750,7 @@ RcppExport SEXP lda_collapsed_gibbs(SEXP num_topics_, SEXP vocab_size_,
 	}
 	umat Z = zeros<umat>(num_word_instances, valid_samples);
 	vec log_marginal = zeros<vec>(valid_samples);
+	vec log_posterior = zeros<vec>(valid_samples);
 
 	mat beta_counts = zeros<mat>(num_topics, vocab_size);
 	mat theta_counts = zeros <mat>(num_topics, num_docs);
@@ -698,6 +759,7 @@ RcppExport SEXP lda_collapsed_gibbs(SEXP num_topics_, SEXP vocab_size_,
 	unsigned int d, i, k, iter, count = 0, instances = 0, wid, did, topic, new_topic, idx;
 	double doc_denom;
 	vec prob;
+	vector < vector < size_t > > doc_word_indices;
 
 	// Gets a random permutation of indices
 	// this may improve mixing
@@ -706,13 +768,18 @@ RcppExport SEXP lda_collapsed_gibbs(SEXP num_topics_, SEXP vocab_size_,
 
 
 	// Gets the document index for each word instance
+	// Calculates the indices for each word in a document as a vector
 
 	for (d = 0; d < num_docs; d++){
+		vector < size_t > word_idx;
 		for (i = 0; i < doc_lengths(d); i++){
 			doc_ids(instances) = d;
+			word_idx.push_back(instances);
 			instances++;
 		}
+		doc_word_indices.push_back(word_idx);
 	}
+
 
 
 	// Initializes beta, theta, and topic counts
@@ -733,6 +800,9 @@ RcppExport SEXP lda_collapsed_gibbs(SEXP num_topics_, SEXP vocab_size_,
 	for (iter = 0; iter < max_iter; iter++){ // for each Gibbs iteration
 
 		if (iter % 100 == 0) cout << "gibbs iter# " << iter + 1;
+
+		mat prior_beta_counts = beta_counts;
+		mat prior_theta_counts = theta_counts;
 
 		for (i = 0; i < num_word_instances; i++){ // for each word instance
 
@@ -766,14 +836,40 @@ RcppExport SEXP lda_collapsed_gibbs(SEXP num_topics_, SEXP vocab_size_,
 
 		if ((iter >= burn_in) && (iter % spacing == 0)){ // handles the burn in period
 			Z.col(count) = z;
+
+			log_marginal(count) = calc_log_marginal_posterior(
+					num_topics, num_docs, vocab_size,
+					prior_theta_counts, prior_beta_counts);
+			if (iter % 100 == 0)
+				cout << " lmp: " << log_marginal(count);
+
+
 			if (store_dirichlet == 1){
-				thetas.slice(count) = theta_counts;
-				betas.slice(count) = beta_counts;
+
+				// Augmenting the collapsed Gibbs sampler chain.
+				// It's named as ACGS chain.
+
+				mat beta = zeros<mat>(num_topics, vocab_size);
+				mat theta = zeros <mat>(num_topics, num_docs);
+				for(k = 0; k < num_topics; k++)
+					beta.row(k) = sample_dirichlet_row_vec(vocab_size, prior_beta_counts.row(k));
+				for (d = 0; d < num_docs; d++) // for each document
+					theta.col(d) = sample_dirichlet(num_topics, prior_theta_counts.col(d));
+				thetas.slice(count) = theta;
+				betas.slice(count) = beta;
+
+
+				// Computes log posterior based on (3.4)
+
+				log_posterior(count) = calc_log_posterior(
+						theta, beta,
+						doc_word_indices, doc_lengths,
+						word_ids, z,
+						alpha_v, eta);
+
+				if (iter % 100 == 0)
+					cout << " lp: " << log_posterior(count);
 			}
-
-			log_marginal(count) = calc_log_marginal_posterior(num_topics, num_docs, vocab_size, theta_counts, beta_counts);
-			if (iter % 100 == 0) cout << " lmp: " << log_marginal(count);
-
 			count++;
 		}
 
@@ -783,15 +879,17 @@ RcppExport SEXP lda_collapsed_gibbs(SEXP num_topics_, SEXP vocab_size_,
 
 	if (store_dirichlet == 1){
 		return List::create(
-				Named("thetas") = wrap(thetas),
-				Named("betas") = wrap(betas),
-				Named("Z") = wrap(Z),
-				Named("lmp") = wrap(log_marginal));
+			Named("thetas") = wrap(thetas),
+			Named("betas") = wrap(betas),
+			Named("Z") = wrap(Z),
+			Named("lmp") = wrap(log_marginal),
+			Named("lp") = wrap(log_posterior));
 	}
 	else {
 		return List::create(
-				Named("Z") = wrap(Z),
-				Named("lmp") = wrap(log_marginal));
+			Named("Z") = wrap(Z),
+			Named("lmp") = wrap(log_marginal),
+			Named("lp") = wrap(log_posterior));
 	}
 
 }

@@ -17,7 +17,7 @@ RcppExport SEXP lda_full(SEXP num_topics_, SEXP vocab_size_, SEXP doc_lengths_, 
   SEXP topic_assignments_, SEXP alpha_v_, SEXP eta_,
 	SEXP max_iter_, SEXP burn_in_, SEXP spacing_, SEXP store_dirichlet_);
 
-RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_, 
+RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
     SEXP doc_lengths_, SEXP word_ids_,
   SEXP topic_assignments_, SEXP alpha_v_, SEXP eta_,
 	SEXP max_iter_, SEXP burn_in_, SEXP spacing_, SEXP store_dirichlet_);

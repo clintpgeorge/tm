@@ -16,14 +16,15 @@ set.seed(1983)
 K              <- 2 # the number of topics
 D              <- 100 # the total number of documents to be generated
 V              <- 20 # the vocabulary size
-max.iter       <- 10000 # the maximum number of Gibbs iterations
+max.iter       <- 11000 # the maximum number of Gibbs iterations
 burn.in        <- 1000
 spacing        <- 1
 lambda.hat     <- 80
 gen.eta        <- 3
-gen.alpha.v    <- c(3, 3)
-gen.eta.v      <- array(gen.eta, c(1, V));                   # symmetric Dirichlet
-rdata.file     <- "/home/clintpg/results/fg_cg_ae33.RData"
+gen.alpha      <- 3
+gen.alpha.v    <- array(gen.alpha, c(1, K));           # symmetric Dirichlet
+gen.eta.v      <- array(gen.eta, c(1, V));             # symmetric Dirichlet
+rdata.file     <- "/home/clintpg/results/fg_cg_ea33.RData"
 store.Dir      <- 1                                    # store the \theta and \beta Dirichlet samples ? 
 
 ## Generates the synthetic beta.m
@@ -63,10 +64,11 @@ save.image(rdata.file)
 
 # Init file names 
 
-rdata.file <- "/home/clintpg/results/fg_cg_ae33.RData"
-log.marginal.posterior.plot <- "/home/clintpg/results/fg_cg_ae33_lmp.eps"
-theta.acf.plot <- "/home/clintpg/results/fg_cg_ae33_theta.eps"
-beta.acf.plot <- "/home/clintpg/results/fg_cg_ae33_beta.eps"
+rdata.file <- "/home/clintpg/results/fg_cg_ea33.RData"
+log.marginal.posterior.plot <- "/home/clintpg/results/fg_cg_ea33_lmp.eps"
+log.posterior.plot <- "/home/clintpg/results/fg_cg_ea33_lp.eps"
+theta.acf.plot <- "/home/clintpg/results/fg_cg_ea33_theta.eps"
+beta.acf.plot <- "/home/clintpg/results/fg_cg_ea33_beta.eps"
 
 
 # Loads the saved data 
@@ -92,6 +94,24 @@ acf(cg.mdl$lmp[,1], lag.max=100, main=expression(paste("GS on (z): log marginal 
 
 dev.off()
 
+
+# --------------------------------------------------------------------------------------
+# Log posterior plots 
+# --------------------------------------------------------------------------------------
+
+postscript(file=log.posterior.plot, title="Log posterior plots", horiz=F)  
+par(mfrow = c(2, 2))
+
+x.axis <- (burn.in+1):(burn.in+dim(fg.mdl$lmp)[1])
+plot(x.axis, fg.mdl$lmp[,1], type="l", col="blue", ylab="Log posterior", xlab="iteration", main=expression(paste("GS on (", beta, ", ", theta, ", z): log marginal posterior (trace)")), lwd=0.4, ylim=c(59500, 60300), cex = 1.5, cex.lab = 1.5, cex.main = 1.2) 
+plot(x.axis, cg.mdl$lmp[,1], type="l", col="black", ylab="Log posterior", xlab="iteration", main=expression(paste("GS on (z): log marginal posterior (trace)")), lwd=0.4, ylim=c(59500, 60300), cex = 1.5, cex.lab = 1.5, cex.main = 1.2) 
+
+# acf on the log marginal posterior 
+
+acf(fg.mdl$lmp[,1], lag.max=100, main=expression(paste("GS on (", beta, ", ", theta, ", z): log posterior (acf)")), cex = 1.5, cex.lab = 1.5, cex.main = 3)
+acf(cg.mdl$lmp[,1], lag.max=100, main=expression(paste("GS on (z): log posterior (acf)")), cex = 1.5, cex.lab = 1.5, cex.main = 3)
+
+dev.off()
 
 
 # --------------------------------------------------------------------------------------
