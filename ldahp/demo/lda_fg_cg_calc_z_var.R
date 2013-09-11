@@ -7,8 +7,6 @@
 ##############################################################################################
 
 rdata.file <- "fg_cg_ea33_pvalues.RData"
-pvalues.hist.file <- "fg_cg_ea33_pvalues.eps"
-pvalues.hist.title <- "h=(3,3): p-values"
 
 ## Loads packages 
 
@@ -77,14 +75,56 @@ for (i in 1:total.num.words){
   p.values[i] <- t.res$p.value
 }
 
-postscript(file=pvalues.hist.file, title=pvalues.hist.title, horiz=F, height=4, width=7) 
-hist(p.values, main="", cex=3, xlab="p values")
-dev.off()
-
-
 ## Saves all objects into a file
 
 save.image(rdata.file)
+
+
+
+rdata.file <- "fg_cg_ea108_pvalues.RData"
+pvalues.hist.file <- "fg_cg_ea108_pvalues.eps"
+pvalues.hist.title <- "h=(10,8): p-values"
+pvalues.qqplot.file <- "fg_cg_ea108_pvalues_qqplot.eps"
+pvalues.qqplot.title <- "h=(10,8): QQ plot of the p-values"
+
+rdata.file <- "fg_cg_ea33_pvalues.RData"
+pvalues.hist.file <- "fg_cg_ea33_pvalues.eps"
+pvalues.hist.title <- "h=(3,3): p-values"
+pvalues.qqplot.file <- "fg_cg_ea33_pvalues_qqplot.eps"
+pvalues.qqplot.title <- "h=(3,3): QQ plot of the p-values"
+
+rdata.file <- "fg_cg_ea37_pvalues.RData"
+pvalues.hist.file <- "fg_cg_ea37_pvalues.eps"
+pvalues.hist.title <- "h=(3,7): p-values"
+pvalues.qqplot.file <- "fg_cg_ea37_pvalues_qqplot.eps"
+pvalues.qqplot.title <- "h=(3,7): QQ plot of the p-values"
+
+rdata.file <- "fg_cg_ea77_pvalues.RData"
+pvalues.hist.file <- "fg_cg_ea77_pvalues.eps"
+pvalues.hist.title <- "h=(7,7): p-values"
+pvalues.qqplot.file <- "fg_cg_ea77_pvalues_qqplot.eps"
+pvalues.qqplot.title <- "h=(7,7): QQ plot of the p-values"
+
+load(rdata.file)
+
+postscript(file=pvalues.hist.file, title=pvalues.hist.title, horiz=F, height=5, width=7.5) 
+hist(p.values, main="", cex = 3, cex.lab = 1.5, cex.axis = 1.5, xlab="p values", breaks=20)
+dev.off()
+
+
+# u <- runif(total.num.words)
+# postscript(file=pvalues.qqplot.file, title=pvalues.qqplot.title, horiz=F, height=5, width=7.5) 
+# # qqnorm(p.values, cex = 1, cex.lab = 1.5, cex.axis = 1.5, main=""); qqline(p.values, col = 2);
+# qqplot(u, p.values, cex = 1, cex.lab = 1.5, cex.axis = 1.5, main=""); abline(0,1); ## a 45-degree reference line is plotted
+# # qqplot(x=a, y=p, cex = 1, cex.lab = 1.5, cex.axis = 1.5, main=""); abline(0,1);
+# dev.off()
+
+q <- ((1:total.num.words) - 0.5) / total.num.words; ## the theoretical quantile values 
+postscript(file=pvalues.qqplot.file, title=pvalues.qqplot.title, horiz=F, height=5.5, width=5.5) 
+qqplot(q, p.values, cex = 1, cex.lab = 1.5, cex.axis = 1.5, main="", xlab = "Theoretical Quantiles", ylab = "p-values"); 
+abline(0,1); ## a 45-degree reference line is plotted
+dev.off()
+
 
 
 
