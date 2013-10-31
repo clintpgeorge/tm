@@ -1,8 +1,10 @@
 ##############################################################################################
-## This script is used to generate comparison plots of the LDA collapsed 
-## and full Gibbs samplers' log marginal posterior on z, \theta, and \beta 
+## This script is used to generate comparison plots of the LDA Augmented 
+## Collapsed Gibbs sampler and full Gibbs sampler based on the ACF and trace 
+## plots of z, \beta, and \theta variables 
 ## 
-## Created on: July 13, 2013 
+## Created on:       July 13, 2013
+## Last modified on: Sept 28, 2013 
 ##############################################################################################
 
 ## Loads packages 

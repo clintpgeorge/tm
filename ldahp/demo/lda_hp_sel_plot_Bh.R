@@ -84,6 +84,14 @@ splot.file      <- "/home/clintpg/results/fg_ea108.eps"
 splot.title     <- "true h = (10, 8)"
 eps.bh.surface(ratios, start, end, interval, splot.title, splot.file)
 
+# 5 
+rm(list = setdiff(ls(), lsf.str()));
+rdata.file     <- "/home/clintpg/results/fg_ea37.RData"
+load(rdata.file)
+
+splot.file      <- "/home/clintpg/results/fg_ea37.eps"
+splot.title     <- "true h = (3, 3)"
+eps.bh.surface(ratios, start, end, interval, splot.title, splot.file)
 
 rm(list=ls());
 

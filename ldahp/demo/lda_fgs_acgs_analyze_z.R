@@ -1,12 +1,13 @@
 ##############################################################################################
-## This script is used to compare the LDA collapsed Gibbs sampler (Griffiths Steyvers 2004)
-## and the LDA full Gibbs sampler (Fuentes et al. 2010)
+## This script is used to compare the Augmented Collapsed Gibbs sampler
+## and the full Gibbs sampler of LDA based on the z sample (word topic 
+## allocations) 
 ## 
 ## 
-## Last modified on: July 13, 2013 
+## Last modified on: Sept 27, 2013 
 ##############################################################################################
 
-rdata.file <- "fg_cg_ea33_pvalues.RData"
+rdata.file <- "fg_cg_ea73_pvalues.RData"
 
 ## Loads packages 
 
@@ -23,7 +24,7 @@ max.iter       <- 50000 # the maximum number of Gibbs iterations
 burn.in        <- 10000
 spacing        <- 40
 lambda.hat     <- 80
-gen.eta        <- 3
+gen.eta        <- 7
 gen.alpha      <- 3
 gen.alpha.v    <- array(gen.alpha, c(1, K));           # symmetric Dirichlet
 gen.eta.v      <- array(gen.eta, c(1, V));             # symmetric Dirichlet
@@ -79,51 +80,6 @@ for (i in 1:total.num.words){
 
 save.image(rdata.file)
 
-
-
-rdata.file <- "fg_cg_ea108_pvalues.RData"
-pvalues.hist.file <- "fg_cg_ea108_pvalues.eps"
-pvalues.hist.title <- "h=(10,8): p-values"
-pvalues.qqplot.file <- "fg_cg_ea108_pvalues_qqplot.eps"
-pvalues.qqplot.title <- "h=(10,8): QQ plot of the p-values"
-
-rdata.file <- "fg_cg_ea33_pvalues.RData"
-pvalues.hist.file <- "fg_cg_ea33_pvalues.eps"
-pvalues.hist.title <- "h=(3,3): p-values"
-pvalues.qqplot.file <- "fg_cg_ea33_pvalues_qqplot.eps"
-pvalues.qqplot.title <- "h=(3,3): QQ plot of the p-values"
-
-rdata.file <- "fg_cg_ea37_pvalues.RData"
-pvalues.hist.file <- "fg_cg_ea37_pvalues.eps"
-pvalues.hist.title <- "h=(3,7): p-values"
-pvalues.qqplot.file <- "fg_cg_ea37_pvalues_qqplot.eps"
-pvalues.qqplot.title <- "h=(3,7): QQ plot of the p-values"
-
-rdata.file <- "fg_cg_ea77_pvalues.RData"
-pvalues.hist.file <- "fg_cg_ea77_pvalues.eps"
-pvalues.hist.title <- "h=(7,7): p-values"
-pvalues.qqplot.file <- "fg_cg_ea77_pvalues_qqplot.eps"
-pvalues.qqplot.title <- "h=(7,7): QQ plot of the p-values"
-
-load(rdata.file)
-
-postscript(file=pvalues.hist.file, title=pvalues.hist.title, horiz=F, height=5, width=7.5) 
-hist(p.values, main="", cex = 3, cex.lab = 1.5, cex.axis = 1.5, xlab="p values", breaks=20)
-dev.off()
-
-
-# u <- runif(total.num.words)
-# postscript(file=pvalues.qqplot.file, title=pvalues.qqplot.title, horiz=F, height=5, width=7.5) 
-# # qqnorm(p.values, cex = 1, cex.lab = 1.5, cex.axis = 1.5, main=""); qqline(p.values, col = 2);
-# qqplot(u, p.values, cex = 1, cex.lab = 1.5, cex.axis = 1.5, main=""); abline(0,1); ## a 45-degree reference line is plotted
-# # qqplot(x=a, y=p, cex = 1, cex.lab = 1.5, cex.axis = 1.5, main=""); abline(0,1);
-# dev.off()
-
-q <- ((1:total.num.words) - 0.5) / total.num.words; ## the theoretical quantile values 
-postscript(file=pvalues.qqplot.file, title=pvalues.qqplot.title, horiz=F, height=5.5, width=5.5) 
-qqplot(q, p.values, cex = 1, cex.lab = 1.5, cex.axis = 1.5, main="", xlab = "Theoretical Quantiles", ylab = "p-values"); 
-abline(0,1); ## a 45-degree reference line is plotted
-dev.off()
 
 
 
@@ -184,25 +140,3 @@ dev.off()
 # 
 # 
 # 
-# # two-sample test 
-# library(ldahp); 
-# load("fg_cg_ae33_z.RData")
-# 
-# d <- 5
-# fgt.d <- fg.mdl$theta[, d, ]
-# cgt.d <- normalize(cg.mdl$theta[, d, ], dim=1) # normalize over the columns 
-# 
-# # t-test using the vector of theta_d vectors 
-# t.test(fgt.d, cgt.d)
-# 
-# # t-test using the vector of the first element of theta_d vectors 
-# t.test(fgt.d[1,], cgt.d[1,])
-# 
-# 
-
-
-
-
-
-
-

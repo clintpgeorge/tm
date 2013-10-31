@@ -15,11 +15,11 @@ set.seed(1983);
 ## Initialize variables
 
 
-## h = (eta, alpha) = (3, 3)
-rdata.file     <- "fg_ea33.RData"
-gen.eta        <- 3 # symmetric Dirichlet
-gen.alpha      <- 3 # symmetric Dirichlet
-base.alpha.idx <- 855 
+# ## h = (eta, alpha) = (3, 3)
+# rdata.file     <- "fg_ea33.RData"
+# gen.eta        <- 3 # symmetric Dirichlet
+# gen.alpha      <- 3 # symmetric Dirichlet
+# base.alpha.idx <- 855 
 
 
 # ## h = (eta, alpha) = (7, 7)
@@ -39,6 +39,12 @@ base.alpha.idx <- 855
 # gen.eta        <- 10 # symmetric Dirichlet
 # gen.alpha      <- 8 # symmetric Dirichlet
 # base.alpha.idx <- 2390 
+
+## h = (eta, alpha) = (3, 7)
+rdata.file     <- "fg_ea37.RData"
+gen.eta        <- 3 # symmetric Dirichlet
+gen.alpha      <- 7 # symmetric Dirichlet
+base.alpha.idx <- 2055 
 
 
 K              <- 2 # the number of topics
@@ -93,7 +99,7 @@ cat("execution time = ", ptm[3], "\n");
 sym.alphas     <- kronecker(matrix(1.0, 1, K), alphas[1,]);
 sym.etas       <- kronecker(matrix(1.0, 1, V), alphas[2,]);
 # log.nu.alphas  <- calc_log_nu_alphas_with_beta(ret$thetas, ret$betas, sym.alphas, sym.etas);
-log.nu.alphas  <- calc_log_nu_alphas_with_beta(model$thetas, model$betas, sym.alphas, sym.etas);
+log.nu.alphas  <- calc_log_nu_alphas_with_beta(model$theta, model$beta, sym.alphas, sym.etas);
 
 ## Calculates the likelihood ratios
 ratios         <- calc_likelihood_ratios(log.nu.alphas, base.alpha.idx);

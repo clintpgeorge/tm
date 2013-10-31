@@ -30,12 +30,14 @@ calc_log_nu_alphas_with_beta <- function (thetas, betas, alphas, etas) {
   num.grids  <- nrow(alphas); # G x K matrix 
   K          <- ncol(alphas);
   V          <- ncol(etas); # G x V matrix 
-  log.nu.alphas  <- matrix(0, nrow=num.grids, ncol=sample.count);
   
   cat("Computing log nu alphas: \n\t number of grids = ", num.grids);
   cat("\n\t number of samples = ", sample.count);
-  cat("\n\t number of topics = ", K)
+  cat("\n\t number of topics = ", K);
+  cat("\n\t number of docs = ", D);
   cat("\n\t vocabulary size = ", V, "\n\t ");
+
+  log.nu.alphas  <- matrix(0, nrow=num.grids, ncol=sample.count);
   
   for (ng in 1:num.grids){
     
