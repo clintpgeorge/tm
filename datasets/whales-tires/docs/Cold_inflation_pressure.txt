@@ -1,0 +1,6 @@
+Cold inflation pressure is the inflation pressure of tires before the car is driven and the tires warmed up. Recommended cold inflation pressure is displayed on the owner's manual and on the placard (or sticker) attached to the vehicle door edge, pillar, glovebox door or fuel filler flap. Drivers are encouraged to make sure their tires are adequately inflated, as suboptimal tire pressure can greatly reduce fuel economy, increase emissions, and can lead to premature failure of the tire.
+Tire pressure is measured in psi, bar or kilopascal.
+Direct TPMS
+Tire-pressure gauge
+Tire-pressure monitoring system
+

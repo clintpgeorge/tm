@@ -1,0 +1,5 @@
+Tire load sensitivity describes the behaviour of tires under load. Conventional pneumatic tires do not behave as classical friction theory would suggest. All real tires have "negative" load sensitivity, since the greater the vertical load, Fz, the lower the coefficient of friction.
+Coulomb friction theory says that the maximum horizontal force developed should be proportional to the vertical load on the tire. In practice, the maximum horizontal force Fy that can be generated is proportional, roughly, to the vertical load Fz raised to the power of somewhere between 0.7 and 0.9, typically.
+Production car tires typically develop this maximum lateral force at a slip angle of 6-10 degrees, although this angle increases as the vertical load on the tire increases. [1] Formula 1 car tires may reach a peak sideforce at 3 degrees [2]
+As an example, here is data extracted from Milliken and Milliken's "Race Car Vehicle Dynamics", figure 2.9:
+The same sensitivity is typically seen in the longitudinal forces, and combined lateral and longitudinal slip.
