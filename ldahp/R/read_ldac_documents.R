@@ -1,4 +1,4 @@
-read_ldac_documents <- function (filename="mult.dat") 
+read_docs <- function (filename="mult.dat") 
 {
   # Reads documents in LDA-C format. This 
   # function considers that vocab-id starts at 0
@@ -27,7 +27,7 @@ vectorize_docs <- function (docs)
   # format (e.g. David Newman LDA implementation). 
   # 
   # Arguments: 
-  #   docs - lists of documents  
+  #   docs - a list of documents  
   # 
   
   D <- length(docs)
@@ -57,7 +57,7 @@ calc_doc_lengths <- function(docs)
   # Computes the number of words in each document
   # 
   # Arguments: 
-  #   docs - lists of documents  
+  #   docs - a list of documents  
   # 
   
   D <- length(docs);

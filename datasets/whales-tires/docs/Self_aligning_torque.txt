@@ -1,6 +1,0 @@
-Self aligning torque, also known as the aligning torque, SAT or Mz, is the torque that a tire creates as it rolls along that tends to steer it, ie rotate it around its vertical axis. Even if the slip angle and camber angle are zero, and the road is flat, this torque will still be generated due to asymmetries in the tire's construction and the asymmetrical shape and pressure distribution of the contact patch. Typically for a production tire this torque reaches a maximum at 2-4 degrees of slip (this figure is very dependent on a lot of things) and falls to zero as the tire reaches its maximum lateral force capability.
-Rather than thinking of it as a torque it is useful to consider it as being the product of the lateral force generated at the contact patch, and the distance behind the wheel centre at which that force acts. This distance is known as the pneumatic trail. The steering torque around the steer axis is given by (mechanical trail+pneumatic trail)*cos(caster angle)*Fy.
-Vehicle dynamics
-
-Milliken and Milliken "Race Car Vehicle Dynamics" Chapter 2
-

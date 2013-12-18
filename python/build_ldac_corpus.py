@@ -12,7 +12,6 @@ Created On: Dec 14, 2013
 '''
 import os 
 import re 
-import quopri
 import codecs
 import logging
 
@@ -123,7 +122,6 @@ def cleanup(token):
     
     try:
         
-#        token = quopri.decodestring(token).encode('UTF-8')
         token = remove_non_ASCII(token)
 
         for each_char in STRIP_CHAR_LIST:
@@ -241,7 +239,7 @@ def stem_tokens(word_tokens):
                     
 
 
-def build_lda_corpus(doc_path_index_file, 
+def build_lda_corpus(doc_path_index_file, data_folder,
                      dictionary_file, ldac_file, 
                      min_word_freq=5, 
                      min_word_len=2, max_word_len=20):
@@ -349,7 +347,8 @@ def build_lda_corpus(doc_path_index_file,
     with open(doc_path_index_file) as fp: 
         for lc, doc_line in enumerate(fp): 
             if lc == 0: continue
-            doc_id, category, subject, doc_path = doc_line.strip().split(',')
+            doc_id, category, subject = doc_line.strip().split(';')
+            doc_path = os.path.join(data_folder, subject)
             doc_details.append([doc_id, category, subject, doc_path])
     assert len(doc_details) > 0
     
@@ -377,10 +376,10 @@ def build_lda_corpus(doc_path_index_file,
     
     
 
-    
-doc_path_index_file = '/home/cgeorge/workspace/whales_tires/whales-tires.txt'
+data_folder = '/home/cgeorge/workspace/whales_tires/docs-cleaned'  
+doc_path_index_file = '/home/cgeorge/workspace/whales_tires/whales-tires-cleaned.csv'
 dictionary_file = '/home/cgeorge/workspace/whales_tires/whales-tires.dict' 
 ldac_file = '/home/cgeorge/workspace/whales_tires/whales-tires.ldac'
 
-build_lda_corpus(doc_path_index_file, dictionary_file, ldac_file)
+build_lda_corpus(doc_path_index_file, data_folder, dictionary_file, ldac_file)
 

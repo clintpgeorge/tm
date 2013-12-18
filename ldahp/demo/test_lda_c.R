@@ -53,7 +53,7 @@ ds             <- generate_docs_fixed_beta(D, lambda.hat, gen.alpha.v, beta.m);
 ## Based on the C++ implementation
 
 ptm            <- proc.time();
-model          <- lda_full_c2(K, V, ds$wid, ds$doc.N, base.alpha.v, base.eta, max.iter, burn.in, spacing, store.Dir);
+model          <- lda_fgs(K, V, ds$wid, ds$doc.N, base.alpha.v, base.eta, max.iter, burn.in, spacing, store.Dir);
 ptm            <- proc.time() - ptm;
 cat("execution time = ", ptm[3], "\n");
 

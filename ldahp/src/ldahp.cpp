@@ -195,6 +195,431 @@ double calc_log_posterior(
 
 
 
+/**
+ *  The LDA full gibbs sampler:
+ * 		This function samples (Z, Theta, Beta).
+ *
+ * 	Arguments:
+ * 		num_topics_              - the number of topics
+ * 		vocab_size_              - the vocabulary size
+ * 		word_ids_                - the vocabulary ids of each word in each corpus document
+ * 		doc_lengths_             - the number of words in each document as a vector
+ * 		topic_assignments_       - the initial topic assignment of each word in each corpus document
+ * 		alpha_v_                 - the hyperparameter vector for the document topic Dirichlet
+ * 		eta_                     - the hyperparameter for the topic Dirichlet
+ * 		max_iter_                - the max number of Gibbs iterations to be perfomed
+ * 		burn_in_                 - the burn in period
+ * 		spacing_                 - the spacing between samples that are stored
+ * 		store_dirichlet_         - [1]: saves the sampled (Beta, Theta, Z) from the Markov chain
+ * 							       [0]: saves the sampled Z from the Markov chain
+ *
+ * 	Returns:
+ * 		thetas                   - the sampled thetas after the burn in period
+ * 		betas                    - the sampled betas after the burn in period
+ * 		Z                        - the sampled word topic assignments after the burn in period
+ * 		lmp                      - the log marginal psoterior of the LDA model
+ * 		lp                       - the log posterior of the LDA model after ignoring the normalizing constants
+ *
+ */
+RcppExport SEXP lda_fgs(SEXP num_topics_, SEXP vocab_size_,
+		SEXP word_ids_, SEXP doc_lengths_, SEXP topic_assignments_,
+		SEXP alpha_v_, SEXP eta_, SEXP max_iter_, SEXP burn_in_,
+		SEXP spacing_, SEXP store_dirichlet_) {
+
+	cout << "lda_fgs (c++): init process..." << endl;
+
+	// Variable from the R interface  
+
+	uvec doc_lengths = as<uvec>(doc_lengths_);
+	uvec word_ids = as<uvec>(word_ids_);
+	uvec z = as<uvec>(topic_assignments_);
+	vec alpha_v = as<vec>(alpha_v_);
+
+	double eta = as<double>(eta_);
+	int num_topics = as<int>(num_topics_);
+	int vocab_size = as<int>(vocab_size_);
+	int max_iter = as<int>(max_iter_);
+	int burn_in = as<int>(burn_in_);
+	int spacing = as<int>(spacing_);
+	int store_dirichlet = as<int>(store_dirichlet_);
+
+	// Function variables 
+
+	int num_docs = doc_lengths.n_elem;
+	int num_word_instances = word_ids.n_elem;
+	int valid_samples = ceil((max_iter - burn_in) / (double) spacing);
+  
+    cout << "lda_fgs (c++): the number of saved samples - " << valid_samples << endl;
+    cout << "lda_fgs (c++): the number of words in the corpus - " << num_word_instances << endl;
+
+	cube thetas;
+	cube betas;
+	if (store_dirichlet == 1){
+		thetas = cube(num_topics, num_docs, valid_samples);
+		betas = cube(num_topics, vocab_size, valid_samples);
+	}
+	umat Z = zeros<umat>(num_word_instances, valid_samples);
+	vec log_marginal = zeros<vec>(valid_samples);
+	vec log_posterior = zeros<vec>(valid_samples);
+
+	mat prior_beta_samples = zeros<mat>(num_topics, vocab_size);
+	mat prior_beta_counts = zeros<mat>(num_topics, vocab_size);
+	mat prior_theta_samples = zeros<mat>(num_topics, num_docs);
+	mat prior_theta_counts = zeros <mat>(num_topics, num_docs);
+	mat beta_counts = zeros<mat>(num_topics, vocab_size);
+
+	vector < vector < size_t > > doc_word_indices;
+	unsigned int d, i, k, iter, count = 0, instances = 0;
+	rowvec eta_v = zeros<rowvec>(vocab_size);
+	for(k = 0; k < vocab_size; k++)
+		eta_v(k) = eta;
+
+	// Calculates the indices for each word in a document as a vector
+	for (d = 0; d < num_docs; d++){
+		vector < size_t > word_idx;
+		for (i = 0; i < doc_lengths(d); i++){
+			word_idx.push_back(instances);
+			instances++;
+		}
+		doc_word_indices.push_back(word_idx);
+	}
+
+	// Initilizes beta
+
+	beta_counts.fill(eta); // initializes with the smoothing parameter
+	for (i = 0; i < num_word_instances; i++){
+		beta_counts(z(i), word_ids(i)) += 1;
+	}
+
+	cout << "lda_fgs (c++): init success..." << endl;
+
+	int msg_interval = 100;
+	if (msg_interval >= max_iter)
+		msg_interval = 1;
+
+	// The Gibbs sampling loop
+
+	for (iter = 0; iter < max_iter; iter++){ 
+
+		if (iter % msg_interval == 0)
+			cout << "lda_fgs (c++): gibbs iter# " << iter + 1;
+
+		// samples \beta
+		prior_beta_counts = beta_counts; // this is used for log marginal posterior
+		for(k = 0; k < num_topics; k++)
+			prior_beta_samples.row(k) = sample_dirichlet_row_vec(vocab_size, beta_counts.row(k));
+
+
+		for (d = 0; d < num_docs; d++){ // for each document
+
+			vector < size_t > word_idx = doc_word_indices[d];
+
+			// samples \theta
+			vec partition_counts = alpha_v; // initializes with the smoothing parameter
+			for (i = 0; i < doc_lengths(d); i++)
+				partition_counts(z(word_idx[i])) += 1;
+			vec theta_d = sample_dirichlet(num_topics, partition_counts);
+			prior_theta_samples.col(d) = theta_d;
+			prior_theta_counts.col(d) = partition_counts;
+
+
+			// samples z and updates \beta counts
+			for(i = 0; i < doc_lengths(d); i++)
+				beta_counts(z(word_idx[i]), word_ids(word_idx[i])) -= 1; // excludes document d's word-topic counts
+			for (i = 0; i < doc_lengths(d); i++)
+				z(word_idx[i]) = sample_multinomial(theta_d % prior_beta_samples.col(word_ids(word_idx[i])));
+			for(i = 0; i < doc_lengths(d); i++)
+				beta_counts(z(word_idx[i]), word_ids(word_idx[i])) += 1; // includes document d's word-topic counts
+
+		}
+
+		if ((iter >= burn_in) && (iter % spacing == 0)){ // Handles burn in period
+
+			// Note: prior_theta_samples and prior_beta_samples are from old z
+
+			Z.col(count) = z;
+
+			if (store_dirichlet == 1){
+				thetas.slice(count) = prior_theta_samples;
+				betas.slice(count) = prior_beta_samples;
+			}
+
+			log_marginal(count) = calc_log_marginal_posterior(
+					num_topics,
+					num_docs,
+					vocab_size,
+					prior_theta_counts,
+					prior_beta_counts);
+
+			// Computes log posterior based on (3.4)
+
+			log_posterior(count) = calc_log_posterior(
+					prior_theta_samples, prior_beta_samples,
+					doc_word_indices, doc_lengths,
+					word_ids, z,
+					alpha_v, eta);
+
+
+			if (iter % msg_interval == 0)
+				cout << " lmp: " << log_marginal(count) << " lp: " << log_posterior(count);
+
+			count++;
+		}
+
+
+		if (iter % msg_interval == 0)
+			cout << endl;
+
+	} // The end of the Gibbs loop
+  
+	cout << "lda_fgs (c++): completed." << endl;
+	cout << "lda_fgs (c++): the number of saved samples - " << count << endl;
+  
+	if (store_dirichlet == 1){
+		return List::create(
+			Named("thetas") = wrap(thetas),
+			Named("betas") = wrap(betas),
+			Named("Z") = wrap(Z),
+			Named("lmp") = wrap(log_marginal),
+			Named("lp") = wrap(log_posterior));
+	}
+	else {
+		return List::create(
+			Named("Z") = wrap(Z),
+			Named("lmp") = wrap(log_marginal),
+			Named("lp") = wrap(log_posterior));
+	}
+
+
+}
+
+/**
+ *  The Augmented Collapsed Gibbs Sampler (ACGS) of LDA:
+ * 		This augments the Collapsed Gibbs Sampler (CGS) of
+ * 		LDA (Griffiths and Steyvers 2004), which is a Markov
+ * 		chain on Z, with the sampling of \beta and \theta
+ * 		variables giving a chain on (Z, Beta, Theta).
+ *
+ *	References:
+ *		1. Finding scientific topics by Griffiths and Steyvers, 2004
+ *		2. LDA collapsed Gibbs sampler implementation by David Newman
+ *
+ *
+ * 	Arguments:
+ * 		num_topics_              - the number of topics
+ * 		vocab_size_              - the vocabulary size
+ * 		word_ids_                - the vocabulary ids of each word in each corpus document
+ * 		doc_lengths_             - the number of words in each document as a vector
+ * 		topic_assignments_       - the initial topic assignment of each word in each corpus document
+ * 		alpha_v_                 - the hyperparameter vector for the document topic Dirichlet
+ * 		eta_                     - the hyperparameter for the topic Dirichlet
+ * 		max_iter_                - the max number of Gibbs iterations to be perfomed
+ * 		burn_in_                 - the burn in period
+ * 		spacing_                 - the spacing between samples that are stored
+ * 		store_dirichlet_         - [1]: saves the ACGS chain
+ * 							       [0]: saves the CGS chain
+ *
+ * 	Returns:
+ * 		thetas                   - the sampled theta's after the burn in period
+ * 		betas                    - the sampled beta's after the burn in period
+ * 		Z                        - the sampled z's (word topic assignments) after the burn in period
+ * 		lmp                      - the log marginal psoterior of the LDA model
+ * 		lp                       - the log posterior of the LDA model after ignoring the normalizing constants
+ *
+ */
+RcppExport SEXP lda_acgs(SEXP num_topics_, SEXP vocab_size_,
+		SEXP word_ids_, SEXP doc_lengths_, SEXP topic_assignments_,
+		SEXP alpha_v_, SEXP eta_, SEXP max_iter_, SEXP burn_in_,
+		SEXP spacing_, SEXP store_dirichlet_) {
+
+	// variable declarations
+
+	cout << "lda_acgs (c++): init process..." << endl;
+
+	uvec doc_lengths = as<uvec>(doc_lengths_); // the length of each document
+	uvec word_ids = as<uvec>(word_ids_); // word indices
+	uvec z = as<uvec>(topic_assignments_); // we get this because, we wanna use a given starting point for Gibbs
+	vec alpha_v = as<vec>(alpha_v_); // hyperparameters for the document Dirichlets
+
+	double eta = as<double>(eta_); // hyperparameter for the topic Dirichlets
+	int num_topics = as<int>(num_topics_);
+	int vocab_size = as<int>(vocab_size_);
+	int max_iter = as<int>(max_iter_);
+	int burn_in = as<int>(burn_in_);
+	int spacing = as<int>(spacing_);
+	int store_dirichlet = as<int>(store_dirichlet_);
+	int num_docs = doc_lengths.n_elem; // number of documents in the corpus
+	int num_word_instances = word_ids.n_elem; // total number of words in the corpus
+	int valid_samples = ceil((max_iter - burn_in) / (double) spacing);
+
+    cout << "lda_acgs (c++): the number of saved samples - " << valid_samples << endl;
+    cout << "lda_acgs (c++): the number of words in the corpus - " << num_word_instances << endl;
+
+	cube thetas;
+	cube betas;
+	if (store_dirichlet == 1){
+		thetas = cube(num_topics, num_docs, valid_samples);
+		betas = cube(num_topics, vocab_size, valid_samples);
+	}
+	umat Z = zeros<umat>(num_word_instances, valid_samples);
+	vec log_marginal = zeros<vec>(valid_samples);
+	vec log_posterior = zeros<vec>(valid_samples);
+
+	mat beta_counts = zeros<mat>(num_topics, vocab_size);
+	mat theta_counts = zeros <mat>(num_topics, num_docs);
+	vec topic_counts = zeros<vec> (num_topics);
+	uvec doc_ids = zeros<uvec>(num_word_instances);
+	unsigned int d, i, k, iter, count = 0, instances = 0, wid, did, topic, new_topic, idx;
+	double doc_denom;
+	vec prob;
+	vector < vector < size_t > > doc_word_indices;
+
+	// Gets a random permutation of indices
+	// this may improve mixing
+	// Reference: Dr. Newman's implementation
+	// uvec porder = randperm (num_word_instances);
+
+
+	// Gets the document index for each word instance
+	// Calculates the indices for each word in a document as a vector
+
+	for (d = 0; d < num_docs; d++){
+		vector < size_t > word_idx;
+		for (i = 0; i < doc_lengths(d); i++){
+			doc_ids(instances) = d;
+			word_idx.push_back(instances);
+			instances++;
+		}
+		doc_word_indices.push_back(word_idx);
+	}
+
+
+
+	// Initializes beta, theta, and topic counts
+
+	beta_counts.fill(eta); // initializes with the smoothing parameter
+	for (d = 0; d < num_docs; d++)
+		theta_counts.col(d) = alpha_v; // initializes with the smoothing parameter
+
+	for (i = 0; i < num_word_instances; i++){
+		beta_counts(z(i), word_ids(i)) += 1;
+		topic_counts (z(i)) += 1;
+		theta_counts (z(i), doc_ids(i)) += 1;
+	}
+
+	cout << "lda_acgs (c++): init success..." << endl;
+
+	int msg_interval = 100;
+	if (msg_interval >= max_iter)
+		msg_interval = 1;
+
+
+	// The Gibbs sampling loop
+
+	for (iter = 0; iter < max_iter; iter++){ // for each Gibbs iteration
+
+		if (iter % msg_interval == 0) cout << "lda_acgs (c++): gibbs iter# " << iter + 1;
+
+		mat prior_beta_counts = beta_counts;
+		mat prior_theta_counts = theta_counts;
+
+		for (i = 0; i < num_word_instances; i++){ // for each word instance
+
+			idx = i; //  porder(i); // permutation
+			wid = word_ids(idx); // word index
+			did = doc_ids(idx); // document index
+			topic = z(idx); // old topic
+			prob = zeros <vec> (num_topics); // init. probability vector
+
+			// decrements the counts by one, to ignore the current sampling word
+
+			beta_counts(topic, wid)--;
+			theta_counts(topic, did)--;
+			topic_counts(topic)--;
+
+			doc_denom = doc_lengths(did) - 1 + accu(alpha_v); // a constant for a term
+
+			for (k = 0; k < num_topics; k++){ // for each topic compute P(z_i == j | z_{-i}, w)
+				prob(k) = (theta_counts(k, did) / doc_denom) *  (beta_counts(k, wid) /  (topic_counts(k) + vocab_size * eta));
+			}
+			new_topic = sample_multinomial(prob); // new topic
+
+			// increments the counts by one
+
+			beta_counts(new_topic, wid)++;
+			theta_counts(new_topic, did)++;
+			topic_counts(new_topic)++;
+			z(idx) = new_topic;
+
+		} // end of the word topic sampling loop
+
+		if ((iter >= burn_in) && (iter % spacing == 0)){ // handles the burn in period
+
+			Z.col(count) = z;
+
+			log_marginal(count) = calc_log_marginal_posterior(
+					num_topics, num_docs, vocab_size,
+					prior_theta_counts, prior_beta_counts);
+
+			if (iter % msg_interval == 0)
+				cout << " lmp: " << log_marginal(count);
+
+
+			if (store_dirichlet == 1){
+
+				// Augmenting the collapsed Gibbs sampler chain.
+				// It's named as ACGS chain.
+
+				mat beta = zeros<mat>(num_topics, vocab_size);
+				mat theta = zeros <mat>(num_topics, num_docs);
+				for(k = 0; k < num_topics; k++)
+					beta.row(k) = sample_dirichlet_row_vec(vocab_size, prior_beta_counts.row(k));
+				for (d = 0; d < num_docs; d++) // for each document
+					theta.col(d) = sample_dirichlet(num_topics, prior_theta_counts.col(d));
+				thetas.slice(count) = theta;
+				betas.slice(count) = beta;
+
+
+				// Computes log posterior based on (3.4)
+
+				log_posterior(count) = calc_log_posterior(
+						theta, beta,
+						doc_word_indices, doc_lengths,
+						word_ids, z,
+						alpha_v, eta);
+
+				if (iter % msg_interval == 0)
+					cout << " lp: " << log_posterior(count);
+			}
+			count++;
+		}
+
+		if (iter % msg_interval == 0) cout << endl;
+
+	} // The end of the Gibbs loop
+
+
+
+	cout << "lda_acgs (c++): completed." << endl;
+	cout << "lda_acgs (c++): the number of saved samples - " << count << endl;
+
+	if (store_dirichlet == 1){
+		return List::create(
+			Named("thetas") = wrap(thetas),
+			Named("betas") = wrap(betas),
+			Named("Z") = wrap(Z),
+			Named("lmp") = wrap(log_marginal),
+			Named("lp") = wrap(log_posterior));
+	}
+	else {
+		return List::create(
+			Named("Z") = wrap(Z),
+			Named("lmp") = wrap(log_marginal));
+	}
+
+}
+
+
 
 
 /**
@@ -227,7 +652,7 @@ RcppExport SEXP lda_full(SEXP num_topics_, SEXP vocab_size_, SEXP doc_lengths_, 
 		SEXP topic_assignments_, SEXP alpha_v_, SEXP eta_,
 		SEXP max_iter_, SEXP burn_in_, SEXP spacing_, SEXP store_dirichlet_) {
 
-	// Variable from the R interface  
+	// Variable from the R interface
 
 	uvec z = as<uvec>(topic_assignments_);
 	vec alpha_v = as<vec>(alpha_v_);
@@ -241,7 +666,7 @@ RcppExport SEXP lda_full(SEXP num_topics_, SEXP vocab_size_, SEXP doc_lengths_, 
 	int spacing = as<int>(spacing_);
 	int store_dirichlet = as<int>(store_dirichlet_);
 
-	// Function variables 
+	// Function variables
 
 	int num_docs = doc_lengths.n_elem;
 	int num_word_instances = accu(doc_lengths);
@@ -310,7 +735,7 @@ RcppExport SEXP lda_full(SEXP num_topics_, SEXP vocab_size_, SEXP doc_lengths_, 
 		mat prior_theta_samples = zeros<mat>(num_topics, num_docs);
 		mat prior_theta_counts = zeros<mat>(num_topics, num_docs);
 
-		for (d = 0; d < num_docs; d++){ // for each document 
+		for (d = 0; d < num_docs; d++){ // for each document
 
 			word_idx = doc_word_indices[d];
 			unique_words = doc_unique_words[d];
@@ -349,13 +774,13 @@ RcppExport SEXP lda_full(SEXP num_topics_, SEXP vocab_size_, SEXP doc_lengths_, 
 
 		}
 
-		if ((iter >= burn_in) && (iter % spacing == 0)){ // handles burn in period 
+		if ((iter >= burn_in) && (iter % spacing == 0)){ // handles burn in period
 			Z.col(count) = z;
 			if (store_dirichlet == 1){
 				thetas.slice(count) = prior_theta_samples;
 				betas.slice(count) = prior_beta_samples;
 			}
-			log_marginal(count) = calc_log_marginal_posterior(num_topics, num_docs, vocab_size, prior_theta_counts, prior_beta_counts); 
+			log_marginal(count) = calc_log_marginal_posterior(num_topics, num_docs, vocab_size, prior_theta_counts, prior_beta_counts);
 			if (iter % 1000 == 0)
 				cout << " lmp: " << log_marginal(count);
 
@@ -386,187 +811,6 @@ RcppExport SEXP lda_full(SEXP num_topics_, SEXP vocab_size_, SEXP doc_lengths_, 
 
 }
 
-/**
- *  The LDA full gibbs sampler:
- * 		This function samples z, \theta, and \beta.
- * 		This function assumes that the document word
- * 		instances are in Gibbs sampling format.
- *
- * 	Arguments:
- * 		num_topics_ - number of topics
- * 		vocab_size_ - vocabulary size
- * 		doc_lengths_ - a vector that contains the number of words in each document
- * 		word_ids_ - a vector of document word instances
- * 		topic_assignments_ - a vector of initial topic assignments for each word in the corpus
- * 		alpha_v_ - a vector of hyperparameters of the document Dirichlet
- * 		eta_ - the hyperparameter of the topic Dirichlet
- * 		max_iter_ - the max number of Gibbs iterations to be performed
- * 		burn_in_ - burn in period
- * 		spacing_ - the spacing between samples that are stored
- *
- * 	Returns:
- * 		thetas - the sampled thetas after burn in period
- * 		betas - the sampled betas after burn in period
- * 		Z - the sampled word topic assignments after burn in period
- *
- */
-RcppExport SEXP lda_full2(SEXP num_topics_, SEXP vocab_size_,
-		SEXP doc_lengths_, SEXP word_ids_,
-		SEXP topic_assignments_, SEXP alpha_v_, SEXP eta_,
-		SEXP max_iter_, SEXP burn_in_, SEXP spacing_, SEXP store_dirichlet_) {
-
-	// Variable from the R interface  
-
-	uvec doc_lengths = as<uvec>(doc_lengths_);
-	uvec word_ids = as<uvec>(word_ids_);
-	uvec z = as<uvec>(topic_assignments_);
-	vec alpha_v = as<vec>(alpha_v_);
-
-	double eta = as<double>(eta_);
-	int num_topics = as<int>(num_topics_);
-	int vocab_size = as<int>(vocab_size_);
-	int max_iter = as<int>(max_iter_);
-	int burn_in = as<int>(burn_in_);
-	int spacing = as<int>(spacing_);
-	int store_dirichlet = as<int>(store_dirichlet_);
-
-	// Function variables 
-
-	int num_docs = doc_lengths.n_elem;
-	int num_word_instances = word_ids.n_elem;
-	int valid_samples = ceil((max_iter - burn_in) / (double) spacing);
-  
-    // cout << "number of saved samples: " << valid_samples << endl;
-  
-	cube thetas;
-	cube betas;
-	if (store_dirichlet == 1){
-		thetas = cube(num_topics, num_docs, valid_samples);
-		betas = cube(num_topics, vocab_size, valid_samples);
-	}
-	umat Z = zeros<umat>(num_word_instances, valid_samples);
-	vec log_marginal = zeros<vec>(valid_samples);
-	vec log_posterior = zeros<vec>(valid_samples);
-
-	mat prior_beta_samples = zeros<mat>(num_topics, vocab_size);
-	mat prior_beta_counts = zeros<mat>(num_topics, vocab_size);
-	mat prior_theta_samples = zeros<mat>(num_topics, num_docs);
-	mat prior_theta_counts = zeros <mat>(num_topics, num_docs);
-	mat beta_counts = zeros<mat>(num_topics, vocab_size);
-
-	vector < vector < size_t > > doc_word_indices;
-	unsigned int d, i, k, iter, count = 0, instances = 0;
-	rowvec eta_v = zeros<rowvec>(vocab_size);
-	for(k = 0; k < vocab_size; k++)
-		eta_v(k) = eta;
-
-	// Calculates the indices for each word in a document as a vector
-	for (d = 0; d < num_docs; d++){
-		vector < size_t > word_idx;
-		for (i = 0; i < doc_lengths(d); i++){
-			word_idx.push_back(instances);
-			instances++;
-		}
-		doc_word_indices.push_back(word_idx);
-	}
-
-	// Initilizes beta
-
-	beta_counts.fill(eta); // initializes with the smoothing parameter
-	for (i = 0; i < num_word_instances; i++)
-		beta_counts(z(i), word_ids(i)) += 1;
-
-	// The Gibbs sampling loop
-
-	for (iter = 0; iter < max_iter; iter++){ 
-
-		if (iter % 100 == 0) cout << "gibbs iter# " << iter + 1;
-
-		// samples \beta
-		prior_beta_counts = beta_counts; // this is used for log marginal posterior
-		for(k = 0; k < num_topics; k++)
-			prior_beta_samples.row(k) = sample_dirichlet_row_vec(vocab_size, beta_counts.row(k));
-
-
-		for (d = 0; d < num_docs; d++){ // for each document
-
-			vector < size_t > word_idx = doc_word_indices[d];
-
-			// samples \theta
-			vec partition_counts = alpha_v; // initializes with the smoothing parameter
-			for (i = 0; i < doc_lengths(d); i++)
-				partition_counts(z(word_idx[i])) += 1;
-			vec theta_d = sample_dirichlet(num_topics, partition_counts);
-			prior_theta_samples.col(d) = theta_d;
-			prior_theta_counts.col(d) = partition_counts;
-
-
-			// samples z and updates \beta counts
-			for(i = 0; i < doc_lengths(d); i++)
-				beta_counts(z(word_idx[i]), word_ids(word_idx[i])) -= 1; // excludes document d's word-topic counts
-			for (i = 0; i < doc_lengths(d); i++)
-				z(word_idx[i]) = sample_multinomial(theta_d % prior_beta_samples.col(word_ids(word_idx[i])));
-			for(i = 0; i < doc_lengths(d); i++)
-				beta_counts(z(word_idx[i]), word_ids(word_idx[i])) += 1; // includes document d's word-topic counts
-
-		}
-
-		if ((iter >= burn_in) && (iter % spacing == 0)){ // Handles burn in period
-
-			// Note: prior_theta_samples and prior_beta_samples are from old z
-
-			Z.col(count) = z;
-
-			if (store_dirichlet == 1){
-				thetas.slice(count) = prior_theta_samples;
-				betas.slice(count) = prior_beta_samples;
-			}
-
-			log_marginal(count) = calc_log_marginal_posterior(
-					num_topics,
-					num_docs,
-					vocab_size,
-					prior_theta_counts,
-					prior_beta_counts);
-
-			// Computes log posterior based on (3.4)
-
-			log_posterior(count) = calc_log_posterior(
-					prior_theta_samples, prior_beta_samples,
-					doc_word_indices, doc_lengths,
-					word_ids, z,
-					alpha_v, eta);
-
-
-			if (iter % 100 == 0) cout << " lmp: " << log_marginal(count) << " lp: " << log_posterior(count);
-
-			count++;
-		}
-
-
-		if (iter % 100 == 0) cout << endl;
-
-	} // The end of the Gibbs loop
-  
-	cout << "\nnumber of saved samples: " << count << endl;
-  
-	if (store_dirichlet == 1){
-		return List::create(
-			Named("thetas") = wrap(thetas),
-			Named("betas") = wrap(betas),
-			Named("Z") = wrap(Z),
-			Named("lmp") = wrap(log_marginal),
-			Named("lp") = wrap(log_posterior));
-	}
-	else {
-		return List::create(
-			Named("Z") = wrap(Z),
-			Named("lmp") = wrap(log_marginal),
-			Named("lp") = wrap(log_posterior));
-	}
-
-
-}
 
 RcppExport SEXP lda_fg(SEXP num_topics_, SEXP vocab_size_,
 		SEXP doc_lengths_, SEXP word_ids_,
@@ -685,212 +929,6 @@ RcppExport SEXP lda_fg(SEXP num_topics_, SEXP vocab_size_,
 		Named("bs") = wrap(avg_bs),
 		Named("lmp") = wrap(log_marginal),
 		Named("z") = wrap(z)); // final z
-
-}
-
-
-
-/**
- *  The LDA collapsed Gibbs sampler:
- * 		This function samples only z. This function assumes
- * 		that the document word instances are in Gibbs sampling format.
- *
- *	References:
- *		1. Finding scientific topics by Griffiths and Steyvers
- *		2. LDA collapsed Gibbs sampler implementation by David Newman
- *
- *
- * 	Arguments:
- * 		num_topics_ - number of topics
- * 		vocab_size_ - vocabulary size
- * 		doc_lengths_ - contains the number of words in each document as a vector
- * 		word_ids_ - the document word instances
- * 		topic_assignments_ - initial topic assignments for each word in the corpus
- * 		alpha_v_ - the hyperparameter vector for the document topic Dirichlet
- * 		eta_ - the hyperparameter for the topic Dirichlet
- * 		max_iter_ - max number of Gibbs iterations
- * 		burn_in_ - burn in period
- * 		spacing_ - spacing between samples that are stored
- * 		store_dirichlet_ - 	[1] - augments the collapsed GS chain with \beta and theta samples,
- * 							[0] - collapsed GS chain
- *
- * 	Returns:
- * 		thetas - the sampled thetas after burn in period
- * 		betas - the sampled betas after burn in period
- * 		Z - the sampled word topic assignments after burn in period
- *
- */
-RcppExport SEXP lda_collapsed_gibbs(SEXP num_topics_, SEXP vocab_size_,
-		SEXP doc_lengths_, SEXP word_ids_,
-		SEXP topic_assignments_, SEXP alpha_v_, SEXP eta_,
-		SEXP max_iter_, SEXP burn_in_, SEXP spacing_, SEXP store_dirichlet_) {
-
-	// variable declarations
-
-	uvec doc_lengths = as<uvec>(doc_lengths_); // number of words in each document
-	uvec word_ids = as<uvec>(word_ids_); // word indices
-	uvec z = as<uvec>(topic_assignments_); // we get this because, we wanna use a given starting point for Gibbs
-	vec alpha_v = as<vec>(alpha_v_); // hyperparameters for the document Dirichlets
-
-	double eta = as<double>(eta_); // hyperparameter for the topic Dirichlets
-	int num_topics = as<int>(num_topics_);
-	int vocab_size = as<int>(vocab_size_);
-	int max_iter = as<int>(max_iter_);
-	int burn_in = as<int>(burn_in_);
-	int spacing = as<int>(spacing_);
-	int store_dirichlet = as<int>(store_dirichlet_);
-	int num_docs = doc_lengths.n_elem; // number of documents in the corpus
-	int num_word_instances = word_ids.n_elem; // total number of words in the corpus
-	int valid_samples = ceil((max_iter - burn_in) / (double) spacing);
-	cube thetas;
-	cube betas;
-	if (store_dirichlet == 1){
-		thetas = cube(num_topics, num_docs, valid_samples);
-		betas = cube(num_topics, vocab_size, valid_samples);
-	}
-	umat Z = zeros<umat>(num_word_instances, valid_samples);
-	vec log_marginal = zeros<vec>(valid_samples);
-	vec log_posterior = zeros<vec>(valid_samples);
-
-	mat beta_counts = zeros<mat>(num_topics, vocab_size);
-	mat theta_counts = zeros <mat>(num_topics, num_docs);
-	vec topic_counts = zeros<vec> (num_topics);
-	uvec doc_ids = zeros<uvec>(num_word_instances);
-	unsigned int d, i, k, iter, count = 0, instances = 0, wid, did, topic, new_topic, idx;
-	double doc_denom;
-	vec prob;
-	vector < vector < size_t > > doc_word_indices;
-
-	// Gets a random permutation of indices
-	// this may improve mixing
-	// Reference: Dr. Newman's implementation
-	// uvec porder = randperm (num_word_instances);
-
-
-	// Gets the document index for each word instance
-	// Calculates the indices for each word in a document as a vector
-
-	for (d = 0; d < num_docs; d++){
-		vector < size_t > word_idx;
-		for (i = 0; i < doc_lengths(d); i++){
-			doc_ids(instances) = d;
-			word_idx.push_back(instances);
-			instances++;
-		}
-		doc_word_indices.push_back(word_idx);
-	}
-
-
-
-	// Initializes beta, theta, and topic counts
-
-	beta_counts.fill(eta); // initializes with the smoothing parameter
-	for (d = 0; d < num_docs; d++)
-		theta_counts.col(d) = alpha_v; // initializes with the smoothing parameter
-
-	for (i = 0; i < num_word_instances; i++){
-		beta_counts(z(i), word_ids(i)) += 1;
-		topic_counts (z(i)) += 1;
-		theta_counts (z(i), doc_ids(i)) += 1;
-	}
-
-
-	// The Gibbs sampling loop
-
-	for (iter = 0; iter < max_iter; iter++){ // for each Gibbs iteration
-
-		if (iter % 100 == 0) cout << "gibbs iter# " << iter + 1;
-
-		mat prior_beta_counts = beta_counts;
-		mat prior_theta_counts = theta_counts;
-
-		for (i = 0; i < num_word_instances; i++){ // for each word instance
-
-			idx = i; //  porder(i); // permutation
-			wid = word_ids(idx); // word index
-			did = doc_ids(idx); // document index
-			topic = z(idx); // old topic
-			prob = zeros <vec> (num_topics); // init. probability vector
-
-			// decrements the counts by one, to ignore the current sampling word
-
-			beta_counts(topic, wid)--;
-			theta_counts(topic, did)--;
-			topic_counts(topic)--;
-
-			doc_denom = doc_lengths(did) - 1 + accu(alpha_v); // a constant for a term
-
-			for (k = 0; k < num_topics; k++){ // for each topic compute P(z_i == j | z_{-i}, w)
-				prob(k) = (theta_counts(k, did) / doc_denom) *  (beta_counts(k, wid) /  (topic_counts(k) + vocab_size * eta));
-			}
-			new_topic = sample_multinomial(prob); // new topic
-
-			// increments the counts by one
-
-			beta_counts(new_topic, wid)++;
-			theta_counts(new_topic, did)++;
-			topic_counts(new_topic)++;
-			z(idx) = new_topic;
-
-		} // end of the word topic sampling loop
-
-		if ((iter >= burn_in) && (iter % spacing == 0)){ // handles the burn in period
-			Z.col(count) = z;
-
-			log_marginal(count) = calc_log_marginal_posterior(
-					num_topics, num_docs, vocab_size,
-					prior_theta_counts, prior_beta_counts);
-			if (iter % 100 == 0)
-				cout << " lmp: " << log_marginal(count);
-
-
-			if (store_dirichlet == 1){
-
-				// Augmenting the collapsed Gibbs sampler chain.
-				// It's named as ACGS chain.
-
-				mat beta = zeros<mat>(num_topics, vocab_size);
-				mat theta = zeros <mat>(num_topics, num_docs);
-				for(k = 0; k < num_topics; k++)
-					beta.row(k) = sample_dirichlet_row_vec(vocab_size, prior_beta_counts.row(k));
-				for (d = 0; d < num_docs; d++) // for each document
-					theta.col(d) = sample_dirichlet(num_topics, prior_theta_counts.col(d));
-				thetas.slice(count) = theta;
-				betas.slice(count) = beta;
-
-
-				// Computes log posterior based on (3.4)
-
-				log_posterior(count) = calc_log_posterior(
-						theta, beta,
-						doc_word_indices, doc_lengths,
-						word_ids, z,
-						alpha_v, eta);
-
-				if (iter % 100 == 0)
-					cout << " lp: " << log_posterior(count);
-			}
-			count++;
-		}
-
-		if (iter % 100 == 0) cout << endl;
-
-	} // The end of the Gibbs loop
-
-	if (store_dirichlet == 1){
-		return List::create(
-			Named("thetas") = wrap(thetas),
-			Named("betas") = wrap(betas),
-			Named("Z") = wrap(Z),
-			Named("lmp") = wrap(log_marginal),
-			Named("lp") = wrap(log_posterior));
-	}
-	else {
-		return List::create(
-			Named("Z") = wrap(Z),
-			Named("lmp") = wrap(log_marginal),
-			Named("lp") = wrap(log_posterior));
-	}
 
 }
 

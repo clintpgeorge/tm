@@ -44,7 +44,7 @@ ds             <- generate_docs_fixed_beta(D, lambda.hat, gen.alpha.v, beta.m);
 ## The full Gibbs sampling
 
 ptm                <- proc.time();
-fg.mdl             <- lda_full_c2(K, V, ds$wid, ds$doc.N, gen.alpha.v, gen.eta, max.iter, burn.in, spacing, store.Dir);
+fg.mdl             <- lda_fgs(K, V, ds$wid, ds$doc.N, gen.alpha.v, gen.eta, max.iter, burn.in, spacing, store.Dir);
 ptm                <- proc.time() - ptm;
 cat("execution time = ", ptm[3], "\n");
 
@@ -52,7 +52,7 @@ cat("execution time = ", ptm[3], "\n");
 ## The collapsed Gibbs sampling
 
 ptm               <- proc.time();
-cg.mdl            <- lda_collapsed_gibbs_c(K, V, ds$wid, ds$doc.N, gen.alpha.v, gen.eta, max.iter, burn.in, spacing, store.Dir);
+cg.mdl            <- lda_acgs(K, V, ds$wid, ds$doc.N, gen.alpha.v, gen.eta, max.iter, burn.in, spacing, store.Dir);
 ptm               <- proc.time() - ptm;
 cat("execution time = ", ptm[3], "\n");
 

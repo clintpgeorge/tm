@@ -7,71 +7,71 @@
 
 
 # Sets the working dir
-setwd("~/Dropbox/lda-hp/r") 
+setwd('~/workspace/tm/datasets/whales-tires')
+set.seed(1983)
+options(digits=2)
 
 library(MCMCpack)
-library(lda.hp);
-library(optimx);
+library(ldahp)
 
-source('lda.R')
-options(digits=2)
+## Loads Wikipedia data (from Categories: Whales and Tires) 
+
+vocab <- readLines('whales-tires.ldac.vocab');
+documents <- read_docs('whales-tires.ldac');
+ds <- vectorize_docs(documents)
+doc.N <- calc_doc_lengths(documents)
 
 
 ## Initialize variables
-# wp 11000: 1830s, \alpha = c(0.36, 0.54, 1.00), b = 1.00 
-
-vocab          <- readLines('~/Dropbox/lda-data/wp/wp.ldac.vocab');
-# ds             <- read.ldac.documents2('~/Dropbox/lda-data/20120604/ap.ldac');
-# vocab          <- readLines('~/Dropbox/lda-data/20120604/ap.ldac.vocab');
-
-
 V              <- length(vocab)
-K              <- 10                                 # the number of topics
-alpha.v        <- array(1, dim=c(K, 1))              # symmetric Dirichlet
+K              <- 2                                 # the number of topics
+alpha.v        <- c(1, 1)              # symmetric Dirichlet
 eta            <- 1 
-max.iter       <- 100                                # the maximum number of Gibbs iterations
-burn.in        <- 50
+max.iter       <- 1000                              # the maximum number of Gibbs iterations
+burn.in        <- 800
 spacing        <- 1
+store.Dir      <- 1
+
 
 ## The Gibbs sampling
-
-set.seed(1983)
-
 ## Based on the C++ implementation
-ds             <- read.ldac.documents('~/Dropbox/lda-data/wp/wp.ldac');
-model          <- lda_full_c(K, V, ds, alpha.v, eta, max.iter, burn.in, spacing);
+## Always append the vocabulary ids by 1, because LDA-C consider vocabulary starts at 0
 
+## The full Gibbs sampling
 
 ptm            <- proc.time();
-
+fg.mdl         <- lda_fgs(K, V, ds$wid+1, doc.N, alpha.v, eta, max.iter, burn.in, spacing, store.Dir);
 ptm            <- proc.time() - ptm;
 cat("execution time = ", ptm[3], "\n");
 
 
-ds2             <- read.ldac.documents.Gibbs('~/Dropbox/lda-data/wp/wp.ldac');
+## The collapsed Gibbs sampling
+
 ptm            <- proc.time();
-model2          <- lda_full_c2(K, V, ds2, alpha.v, eta, max.iter, burn.in, spacing);
+cg.mdl         <- lda_acgs(K, V, ds$wid+1, doc.N, alpha.v, eta, max.iter, burn.in, spacing, store.Dir);
 ptm            <- proc.time() - ptm;
 cat("execution time = ", ptm[3], "\n");
 
 
 #####################################################################################################################
+## Testing the LDA library in R 
+#####################################################################################################################
 library(lda);
-setwd('~/Dropbox/lda-data/20120604/')
 
+setwd('~/workspace/tm/datasets/whales-tires')
 set.seed(1983); 
 
-num.topics  <- 10; 
+num.topics  <- 2; 
 itr         <- 2000; ## Num iterations
 av          <- 1;
 ev          <- 1;
 bp          <- 1600;
 
-documents   <- read.documents(filename = "ap.ldac");
-vocab       <- read.vocab(filename = "ap.ldac.vocab")
+documents   <- read.documents(filename = "whales-tires.ldac");
+vocab       <- read.vocab(filename = "whales-tires.ldac.vocab")
 
 result      <- lda.collapsed.gibbs.sampler(documents, num.topics, vocab, itr, alpha=av, eta=ev, burnin=bp, trace=2L);
-top.topic.words(result$topics, 10, by.score=TRUE);
+top.topic.words(result$topics, 20, by.score=TRUE);
 
 
 ## Predict new words for the first two documents
@@ -83,5 +83,9 @@ predictions <-  predictive.distribution(result$document_sums[,1:2],
 top.topic.words(t(predictions), 5)
 
 
-attributes(ds)
+attributes(result)
+
+result$assignments
+
+
 
