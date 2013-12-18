@@ -1,0 +1,13 @@
+Direct TPMS, or direct tire pressure monitoring systems (direct sensor TPMS) refers to the use of a pressure sensor directly mounted on the wheels or tires of a vehicle.[1] The pressure inside the tire is measured using a pressure transducer with the pressure information being subsequently sent to the vehicle to warn the driver of under or over inflation of a tire. The pressure information is commonly transmitted to the vehicle using radio frequency (RF) technology, though systems using mechanical, electrical or magnetic methods have been used over recent years.[2]
+In most current designs of direct TPMS, a small electronic assembly which is rugged enough to be mounted inside a tire, measures the pressure using a microelectromechanical system (MEMS)[1] pressure sensor and then transmits this and other information to one or more vehicle receivers.[1] Other information can include a serial number, temperature, acceleration and the status of the complete tire pressure monitoring system.[3] The purpose of the serial number is to allow the vehicle to ignore transmissions from other vehicles and operate with a unique data field. A typical direct TPMS (e.g. Ford,[4]BMW[5] or Toyota[6]) comprises the following components on a vehicle:
+A direct TPM sensor fitted to the back of the valve stem on each wheel
+A TPM Warning Light
+Unique identifier (ID's) for which tire is providing the data including speed and the direction of rotation
+A tire pressure monitor electronic control unit (ECU)
+Antenna(s)
+Controller for periodic measurements
+Source of power
+Diagnostics and wake up system
+
+Most direct TPMS systems use ultra high frequency (UHF) radio in one of the 'unlicensed' ISM bands (industrial, scientific and medical) for transmitting the data,[7] often around 434 MHz in Europe and 315 MHz in much of the rest of the world. On some systems there is a separate receiver or antenna near each wheel whilst more commonly there is a single receiver which receives data from all of the wheels on the vehicle. Commonly this receiver is also used for remote keyless entry system (RKE) as this also usually uses UHF radio transmissions.
+TPM sensors can be fitted to the wheels in a number of ways. They can be mounted on the back of the tire valves stem[8] or attached using adhesive or to a band which is then securely wrapped around the rim inside the tire, usually in the drop zone.[9]

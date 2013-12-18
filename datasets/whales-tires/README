@@ -1,0 +1,55 @@
+whales-tires dataset
+--------------------
+
+This is a topic modeling dataset created from the Wikipedia articles  
+that belong to the Wikipedia categories Whales and Tires. The 
+articles were downloaded in Fall 2010. All rights belongs to the 
+Wikipedia.  
+
+
+Contents
+-------- 
+
+docs                         : This folder contains the Wikipedia articles (each article's 
+                               a few initial paragraphs are scrapped) downloaded from the 
+                               Whales and Tires category in plain text format 
+
+whales-tires.index           : Every line of this file represents the index of a file 
+                               in the docs folder. Each line contains - document id; 
+                               the Wikipedia sub category; the Wikipedia article heading; 
+                               the number of unique words in the document; 
+                               the document length 
+
+whales-tires.ldac.vocab      : This file has all the unique terms in the corpus 
+                               vocabulary. The corpus vocabulary is created after 
+                               performing the steps described below. 
+
+                               1. Tokenized the words in every corpus document 
+                               using the Python NLTK regular expression-based 
+                               tokenizer. We used a custom made regular expression 
+                               for tokenization.  
+                               2. Removed stop words from each document's word tokens 
+                               using a predefined stop word list 
+                               3. Discarded tokens of length < 2 and > 20
+                               4. Discarded tokens of total frequency in the corpus < 5
+                               5. Discarded numerical values, dates, and times from each 
+                               document's word tokens  
+
+whales-tires.ldac            : Every line of this file represents a document from 
+                               the 'docs' folder in the LDA-c format. 
+                       
+                               [M] [term_1]:[count] [term_2]:[count] ...  [term_N]:[count]
+
+                               [M] represents the number of unique terms in the document 
+
+                               [count] represents each term [term_i] 's relative frequency 
+                               in the document. 
+
+                               [term_i] represents the vocabulary id of term i in the document   
+
+                               Reference: http://www.cs.princeton.edu/~blei/lda-c/readme.txt
+
+  
+
+
+ 
