@@ -11,12 +11,12 @@ Contents
 -------- 
 
 docs                         : This folder contains the Wikipedia articles (each article's 
-                               a few initial paragraphs are scrapped) downloaded from the 
+                               a few initial paragraphs are scraped) downloaded from the 
                                Whales and Tires category in plain text format 
 
 whales-tires.index           : Every line of this file represents the index of a file 
                                in the docs folder. Each line contains - document id; 
-                               the Wikipedia sub category; the Wikipedia article heading; 
+                               the Wikipedia articles' sub category; the Wikipedia article heading; 
                                the number of unique words in the document; 
                                the document length 
 
