@@ -7,11 +7,7 @@ such as Latent Dirichlet Allocation and Hierarchical Dirichlet Process.
 
 Latent Dirichlet Allocation
 ----------------------------------
-This contains the implementations of different Latent Dirichlet Allocation (LDA)
-Gibbs samplers ( *full* and *collapsed* ) and Dirichlet hyperparameter selection. 
-The respective source modules are the following
-* ***ldahp*** is an R package for the LDA Gibbs samplers and hyperparameter estimation procedure   
-* ***ldahp-r*** contains the R implementations of the Gibbs samplers and hyperparameter estimation procedure  
+Please see the project **ldamcmc**
 
 
 
@@ -22,7 +18,6 @@ Hierarchical Dirichlet Process
 This module was originally implemented by [Chong Wang](http://www.cs.cmu.edu/~chongw).
 To see the latest code, please go to his [website](http://www.cs.cmu.edu/~chongw/resource.html). 
 This is based on the split-merge implementation of the HDP Gibbs smapler. 
-* ***hdp*** 
 
 
 
