@@ -28,10 +28,10 @@ typedef vector<double> vct; // define the vector of double
 int compare (const void * a, const void * b);
 
 inline double safe_log(double x) {
-  if (x <= 0)
-    return(-10000);
-  else 
-    return(log(x));
+	if (x <= 0)
+		return(-10000);
+	else
+		return(log(x));
 }
 
 double log_sum(double log_a, double log_b);
@@ -50,67 +50,67 @@ void vct_exp(vct* x);
 
 // find the max and argmax in a vector
 template <typename T> T vct_max(const vector<T>& v, int* argmax) {
-  size_t size = v.size();
-  *argmax = 0;
-  T max_val = v[0];
-  for (size_t i = 1; i < size; ++i)
-    if (v[i] > max_val) {
-      max_val = v[i];
-      *argmax = i;
-    }
-  return max_val;
+	size_t size = v.size();
+	*argmax = 0;
+	T max_val = v[0];
+	for (size_t i = 1; i < size; ++i)
+		if (v[i] > max_val) {
+			max_val = v[i];
+			*argmax = i;
+		}
+	return max_val;
 }
 
 // find the sum in a vector
 template <typename T> T vct_sum(const vector<T>& v) {
-  T sum_val = 0;
-  size_t size = v.size();
-  for (size_t i = 0; i < size; ++i)
-    sum_val += v[i];
-  return sum_val;
+	T sum_val = 0;
+	size_t size = v.size();
+	for (size_t i = 0; i < size; ++i)
+		sum_val += v[i];
+	return sum_val;
 }
 
 // swap two elements in vector
 template <typename T > void vct_swap_elements(vector<T>* v, int i, int j) {
-  if (i == j) return; // no need to swap
-  T a = v->at(i);
-  v->at(i) = v->at(j);
-  v->at(j) = a;
+	if (i == j) return; // no need to swap
+	T a = v->at(i);
+	v->at(i) = v->at(j);
+	v->at(j) = a;
 }
 
 template <typename T> void vct_ptr_push_back(vector <T* >* v, int length) {
-  T* ptr = new T[length];
-  memset(ptr, 0, length * sizeof(T));
-  v->push_back(ptr);
+	T* ptr = new T[length];
+	memset(ptr, 0, length * sizeof(T));
+	v->push_back(ptr);
 }
 
 template <typename T> void vct_ptr_resize(vector <T* >* v, size_t new_size, int length=0) {
-  size_t size = v->size();
-  if (size == new_size) {
-    return;
-  } else if (size > new_size) {
-    for (size_t i = new_size; i < size; ++i) {
-      T* ptr = v->at(i);
-      delete [] ptr;
-    }
-    v->resize(new_size);
-  } else {
-    v->resize(new_size, NULL);
-    for (size_t i = size; i < new_size; ++i) {
-      T* ptr = new T[length];
-      memset(ptr, 0, length * sizeof(T));
-      v->at(i) = ptr;
-    }
-  }
+	size_t size = v->size();
+	if (size == new_size) {
+		return;
+	} else if (size > new_size) {
+		for (size_t i = new_size; i < size; ++i) {
+			T* ptr = v->at(i);
+			delete [] ptr;
+		}
+		v->resize(new_size);
+	} else {
+		v->resize(new_size, NULL);
+		for (size_t i = size; i < new_size; ++i) {
+			T* ptr = new T[length];
+			memset(ptr, 0, length * sizeof(T));
+			v->at(i) = ptr;
+		}
+	}
 }
 
 template <typename T> void vct_ptr_free(vector <T* >* v) {
-  int size = v->size();
-  for (int i = 0; i < size; ++i) {
-    T* ptr = v->at(i);
-    delete [] ptr;
-  }
-  v->clear();
+	int size = v->size();
+	for (int i = 0; i < size; ++i) {
+		T* ptr = v->at(i);
+		delete [] ptr;
+	}
+	v->clear();
 }
 
 /// gsl_wrappers
